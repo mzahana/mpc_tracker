@@ -28,13 +28,12 @@ Detailed description is available in [include reference]
 
 * target_detector --> target_state_estimator (E/KF) --> traj_predictor --> mpc_tracker (this code) --> traj_planner --> traj_smapler --> so3_controller --> PX4
 
-* mpcLoop() is the main loop that executes the MPC steps and publishes the desired trajectory to the trajectory planner/sampler
-* mpcLoop() is called whenever a reference trajectory is published by the traj_predictor node
+* refTrajCallback() is the main loop that executes the MPC steps and publishes the desired trajectory to the trajectory planner/sampler
+* refTrajCallback() is called whenever a reference trajectory is published by the traj_predictor node
 */
 
 #include "mpc_tracker/mpc_tracker.h"
 
-// TODO Initialize maxVel, maxAccel, maxJerk
 MPCTracker::MPCTracker(const ros::NodeHandle& nh, const ros::NodeHandle& nh_private):
 _nh(nh),
 _nh_private(nh_private),
@@ -66,11 +65,7 @@ _plot(false)
    _nh_private.param("enable_control_smoothing", _enable_control_smoothing, true);
    _nh_private.param("dt", _dt, 0.05);
    _nh_private.param("plot", _plot, false);
-   // TODO Set maxVel, maxAccel, maxJerk from ROS params
-   // _nh_private.param("maxVel", _maxVel, 5.0);
-   // _nh_private.param("maxAccel", _maxAccel, 2.5);
    _nh_private.param("alt_above_target", _alt_above_target, 2.0);
-
    _nh_private.param("save_mpc_data", _save_mpc_data, false);
    _nh_private.param<std::string>("output_csv_file", _outputCSVFile, "mpc_data.csv");
 
@@ -98,6 +93,7 @@ _plot(false)
 
    }
 
+   // max_jerk is currently not used
    XmlRpc::XmlRpcValue maxJerkConfig;
    if (_nh_private.hasParam("max_jerk"))
    {
@@ -680,6 +676,8 @@ bool MPCTracker::engageMPCCallback(std_srvs::SetBool::Request &req, std_srvs::Se
 
 void MPCTracker::droneImuCallback(const sensor_msgs::Imu::ConstPtr& msg)
 {
+   // WARNING The following is WRONG!!!!
+   // TODO: Need to transform IMU from body frame to local frame, and remove gravity magnitude from z axis
    // Get acceleration values
    _current_drone_accel.setZero();
    _current_drone_accel << msg->linear_acceleration.x , msg->linear_acceleration.y , msg->linear_acceleration.z;
@@ -706,10 +704,11 @@ void MPCTracker::droneOdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
 void MPCTracker::refTrajCallback(const mpc_tracker::StateTrajectory::ConstPtr& msg)
 {
-   // WARNING The rate of MPC publihs rate is affected by
+   // WARNING The rate of MPC is affected by
    // the rate of Odom (drone state) (default 30Hz from mavros/local_position/odom),
    // and _referenceTraj
-   // The MPC rate will be close to the min(odom, _referenceTraj)
+   // and the size of MPC problem
+   // The MPC rate will be close to the min(odom, _referenceTraj, MPC execution)
 
    // Make sure we have a new reference trajectory
    auto dt = (msg->header.stamp - _ref_traj_last_t).toSec();

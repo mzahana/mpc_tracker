@@ -1,0 +1,9 @@
+<launch>
+
+    <arg name="ns" default="interceptor"/>
+    <group ns="$(arg ns)">
+        <node name="mpc_tracker" pkg="mpc_tracker" type="mpc_tracker_node" clear_params="true" output="screen">
+            <rosparam file="$(find mpc_tracker)/config/mpc_tracker.yaml"/>
+        </node>
+    </group>
+</launch>

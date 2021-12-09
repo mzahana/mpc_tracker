@@ -808,10 +808,6 @@ void MPCTracker::testCases(void)
       _referenceTraj(i*NUM_OF_STATES+6,0) = 1.0; // z coordinate at all times
       _referenceTraj(i*NUM_OF_STATES+0,0) = 10.0; // x coordinate at all times
    }
-   // if(_debug)
-   // {
-   //    std::cout << "[MPCTracker::testCase] Updated reference trajectory: \n" << _referenceTraj << "\n";
-   // }
 
    if(_debug)
    {
@@ -868,12 +864,6 @@ void MPCTracker::testCases(void)
       x0 = _A*x0 + _B*_optimal_control_traj.segment(i*NUM_OF_INPUTS, NUM_OF_INPUTS);
    }
 
-   // Compare the simulated satate to the one computed by the optimization
-   auto x_N_opt = _optimal_state_traj.segment(NUM_OF_STATES*_mpcWindow, NUM_OF_STATES);
-   std::cout << "[MPCTracker::testCase] Simulated state at time step t= " << _mpcWindow << "\n" << x0 << "\n";
-   std::cout << "[MPCTracker::testCase] Optimal state at time step t= " << _mpcWindow << "\n" << x_N_opt << "\n";
-   std::cout << "[MPCTracker::testCase] Error between simulated and optimal final state at t= " << _mpcWindow << "\n" << (x_N_opt-x0).norm() << "\n";
-
    // Publish desired trajectory, visualization, ... etc
    if(_pub_pose_path)
    {
@@ -884,17 +874,24 @@ void MPCTracker::testCases(void)
       pubPoseHistory();
    }
 
-   if(_save_mpc_data)
-   {
-      saveMPCDataToFile();
-   }
-
    if (_debug)
    {
       ROS_INFO("[MPCTracker::testCase] Test case is Done!");
    }
 
    ROS_INFO(" Test case took %f seconds.", (ros::Time::now()-t1).toSec());
+
+   // Compare the simulated satate to the one computed by the optimization
+   auto x_N_opt = _optimal_state_traj.segment(NUM_OF_STATES*_mpcWindow, NUM_OF_STATES);
+   std::cout << "[MPCTracker::testCase] Simulated state at time step t= " << _mpcWindow << "\n" << x0 << "\n";
+   std::cout << "[MPCTracker::testCase] Optimal state at time step t= " << _mpcWindow << "\n" << x_N_opt << "\n";
+   std::cout << "[MPCTracker::testCase] Error between simulated and optimal final state at t= " << _mpcWindow << "\n" << (x_N_opt-x0).norm() << "\n";
+
+   if(_save_mpc_data)
+   {
+      saveMPCDataToFile();
+      ROS_INFO("[MPCTracker::testCase] Saved MPC solutions to file: %s", _outputCSVFile.c_str());
+   }
 
    if(_plot)
       plotSolutions();
@@ -967,48 +964,49 @@ void MPCTracker::plotSolutions(void)
 
    // subplots
    plotty::subplot(3, 3, 1);   // state_px, ref_px
-   plotty::plot(times, _optimal_traj_px);
-   plotty::plot(times, _ref_traj_px);
+   plotty::labelPlot("Optimal solution", times, _optimal_traj_px);
+   plotty::labelPlot("Reference trajectory", times, _ref_traj_px, "--");
    plotty::title("x-position");
+   plotty::legend();
 
    plotty::subplot(3, 3, 2);   // state_py, ref_py
    plotty::plot(times, _optimal_traj_py);
-   plotty::plot(times, _ref_traj_py);
+   plotty::plot(times, _ref_traj_py, "--");
    plotty::title("y-position");
 
    plotty::subplot(3, 3, 3);   // state_pz, ref_pz
    plotty::plot(times, _optimal_traj_pz);
-   plotty::plot(times, _ref_traj_pz);
+   plotty::plot(times, _ref_traj_pz, "--");
    plotty::title("z-position");
 
    plotty::subplot(3, 3, 4);
    plotty::plot(times, _optimal_traj_vx);
-   plotty::plot(times, _ref_traj_vx);
+   plotty::plot(times, _ref_traj_vx, "--");
    plotty::title("x-velocity");
 
    plotty::subplot(3, 3, 5);
    plotty::plot(times, _optimal_traj_vy);
-   plotty::plot(times, _ref_traj_vy);
+   plotty::plot(times, _ref_traj_vy, "--");
    plotty::title("y-velocity");
 
    plotty::subplot(3, 3, 6);
    plotty::plot(times, _optimal_traj_vz);
-   plotty::plot(times, _ref_traj_vz);
+   plotty::plot(times, _ref_traj_vz, "--");
    plotty::title("z-velocity");
 
    plotty::subplot(3, 3, 7);
    plotty::plot(times, _optimal_traj_ax);
-   plotty::plot(times, _ref_traj_ax);
+   plotty::plot(times, _ref_traj_ax, "--");
    plotty::title("x-acceleration");
 
    plotty::subplot(3, 3, 8);
    plotty::plot(times, _optimal_traj_ay);
-   plotty::plot(times, _ref_traj_ay);
+   plotty::plot(times, _ref_traj_ay, "--");
    plotty::title("y-acceleration");
 
    plotty::subplot(3, 3, 9);
    plotty::plot(times, _optimal_traj_az);
-   plotty::plot(times, _ref_traj_az);
+   plotty::plot(times, _ref_traj_az, "--");
    plotty::title("z-acceleration");
 
    plotty::show();

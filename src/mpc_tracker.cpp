@@ -889,9 +889,6 @@ void MPCTracker::testCases(void)
       saveMPCDataToFile();
    }
 
-   if(_plot)
-      plotSolutions();
-
    if (_debug)
    {
       ROS_INFO("[MPCTracker::testCase] Test case is Done!");

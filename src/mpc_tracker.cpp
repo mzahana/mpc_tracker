@@ -78,7 +78,15 @@ _reference_frame_id("map")
    {
       if (NUM_OF_STATES != 6)
       {
-         ROS_ERROR("[MPCTracker] NUM_OF_STATES should be equal to 6 for 6DoF model. Exiting...");
+         ROS_ERROR("[MPCTracker] NUM_OF_STATES should be equal to 6 for 6-state model. Exiting...");
+         return;
+      }
+   }
+   else
+   {
+      if (NUM_OF_STATES != 9)
+      {
+         ROS_ERROR("[MPCTracker] NUM_OF_STATES should be equal to 9 for 9-state model. Exiting...");
          return;
       }
    }

@@ -167,7 +167,9 @@ private:
   ros::ServiceServer    _engageCtrl_srv;        /** Engages/disengages MPC controller */
 
   double                _dt;                    /** Prediction time step in seconds */
+  std::string           _reference_frame_id;    /** Name of the map (inertial) frame, where the drone localizes */
   
+  bool                  _use_6dof_model;        /** Use 6DoF model instead of 9DoF */
   Eigen::MatrixXd       _current_drone_state;   /** Current drone state (position, velocity, acceleration) */
   Eigen::Matrix3d       _current_drone_accel;   /** Latest drone acceleration measurements. Will be added to _current_drone_state */
   bool                  _drone_state_received;  /** True if a drone's first measurment is received. Used for initialization*/
@@ -192,7 +194,7 @@ private:
   
   int                   _mpcWindow;             /** Number of prediction steps (N) */
   
-  static const unsigned int      NUM_OF_STATES = 9;             /** Number of UAV states (position, velocity, acceleration) */
+  static const unsigned int      NUM_OF_STATES = 6;             /** Number of UAV states (position, velocity, acceleration) */
   static const unsigned int      NUM_OF_INPUTS = 3;      /** Number of control inputs of the UAV model. Jerk \in R^3 */
   Eigen::MatrixXd       _A;                     /** Discrete transition matrix */
   Eigen::MatrixXd       _B;                     /** Discrete input matrix */
@@ -282,6 +284,12 @@ private:
   void setQ(void);
 
   /**
+   * @brief Sets the states weight matrix, Q in x^T * Q * x, fror 6DoF model.
+   * Uses state_weight_ and updates Q_
+   */
+  void setQ6DoF(void);
+
+  /**
    * @brief Sets the inputs weight matrix, R in u^T * R * u.
    * Uses input_weight_ and updates R_
    */
@@ -294,10 +302,22 @@ private:
   void setTransitionMatrix(void);
 
   /**
+   * @brief Sets the transition matix for discrete time 6DoF model
+   * Result is a function of _dt and it's saved in _A
+   */
+  void setTransitionMatrix6DoF(void);
+
+  /**
    * @brief Sets the discrete input matrix of a discrete-time integrator in 3D.
    * Result is a function of dt_ and saved in _B
    */
   void setInputMatrix(void);
+
+  /**
+   * @brief Sets the discrete input matrix of a discrete-time discrete time 6DoF model.
+   * Result is a function of dt_ and saved in _B
+   */
+  void setInputMatrix6DoF(void);
 
   /**
    * @brief Defines the states limits, _xMin, _xMax
@@ -308,7 +328,15 @@ private:
   void setStateBounds(void);
 
   /**
-   * @brief Defines the control (jerk \in R^3) limits, _uMin, _uMax
+   * @brief Defines the states limits, _xMin, _xMax, for 6Dof model.
+   * Uses _maxVel
+   * Assumes infinite bounds on the position states
+   * Updates _xMin, _xMax
+   */
+  void setStateBounds6DoF(void);
+
+  /**
+   * @brief Defines the control limits, _uMin, _uMax
    * Uses _maxJerk
    * Updates _uMin, _uMax
    */
@@ -377,6 +405,12 @@ private:
   * Updates _state_traj_sol, _control_traj_sol
   */
   void extractSolution(void);
+
+  /**
+  * @brief Extracts MPC solutions, contorl/state trajectories, from QP, for 6DoF model.
+  * Updates _state_traj_sol, _control_traj_sol
+  */
+  void extractSolution6Dof(void);
 
   /**
    * @brief Published setpoint message to MAVROS.

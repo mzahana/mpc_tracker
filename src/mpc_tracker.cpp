@@ -768,7 +768,7 @@ void MPCTracker::extractSolution6Dof(void)
    auto start_t = ros::Time::now();
    for (int i=0; i < _mpcWindow+1; i++)
    {
-      pose_msg.header.frame_id="map";
+      pose_msg.header.frame_id=_reference_frame_id;
       pose_msg.header.stamp = start_t + ros::Duration(i*_dt);
       pose_msg.pose.position.x = _optimal_state_traj(i*NUM_OF_STATES+0);
       pose_msg.pose.position.y = _optimal_state_traj(i*NUM_OF_STATES+2);
@@ -879,19 +879,21 @@ void MPCTracker::droneOdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
       _current_drone_state(4,0) = msg->pose.pose.position.z;
       _current_drone_state(5,0) = msg->twist.twist.linear.z;
-      return;
    }
-   _current_drone_state(0,0) = msg->pose.pose.position.x;
-   _current_drone_state(1,0) = msg->twist.twist.linear.x;
-   _current_drone_state(2,0) = _current_drone_accel(0);
+   else
+   {
+      _current_drone_state(0,0) = msg->pose.pose.position.x;
+      _current_drone_state(1,0) = msg->twist.twist.linear.x;
+      _current_drone_state(2,0) = _current_drone_accel(0);
 
-   _current_drone_state(3,0) = msg->pose.pose.position.y;
-   _current_drone_state(4,0) = msg->twist.twist.linear.y;
-   _current_drone_state(5,0) = _current_drone_accel(1);
+      _current_drone_state(3,0) = msg->pose.pose.position.y;
+      _current_drone_state(4,0) = msg->twist.twist.linear.y;
+      _current_drone_state(5,0) = _current_drone_accel(1);
 
-   _current_drone_state(6,0) = msg->pose.pose.position.z;
-   _current_drone_state(7,0) = msg->twist.twist.linear.z;
-   _current_drone_state(8,0) = _current_drone_accel(2);
+      _current_drone_state(6,0) = msg->pose.pose.position.z;
+      _current_drone_state(7,0) = msg->twist.twist.linear.z;
+      _current_drone_state(8,0) = _current_drone_accel(2);
+   }
 }
 
 void MPCTracker::refTrajCallback(const mpc_tracker::StateTrajectory::ConstPtr& msg)
@@ -1011,16 +1013,17 @@ void MPCTracker::testCases(void)
    // Create a _referenceTraj of a target hovering at 1.0m altitude from ground
    _referenceTraj.resize(NUM_OF_STATES*(_mpcWindow+1),1);
    _referenceTraj.setZero();
-   // states order: [px, vx, ax, py, vy, ay, pz, vz, az]
    for (int i=0; i<_mpcWindow+1; i++)
    {
       if (_use_6dof_model)
       {
+         // states order: [px, vx, py, vy, pz, vz]
          _referenceTraj(i*NUM_OF_STATES+4,0) = 1.0; // z coordinate at all times
          _referenceTraj(i*NUM_OF_STATES+0,0) = 10.0; // x coordinate at all time
       }
       else
       {
+         // states order: [px, vx, ax, py, vy, ay, pz, vz, az]
          _referenceTraj(i*NUM_OF_STATES+6,0) = 1.0; // z coordinate at all times
          _referenceTraj(i*NUM_OF_STATES+0,0) = 10.0; // x coordinate at all times  
       }
@@ -1076,7 +1079,10 @@ void MPCTracker::testCases(void)
       ROS_INFO("[MPCTracker::testCase] Extracting solution");
    }
    // Extract solutions, updates _optimal_state_traj, _optimal_control_traj, _mpc_ctrl_sol
-   extractSolution();
+   if (_use_6dof_model)
+      extractSolution6Dof();
+   else
+      extractSolution();
 
    if(_debug)
    {
@@ -1118,7 +1124,6 @@ void MPCTracker::testCases(void)
    if(_save_mpc_data)
    {
       saveMPCDataToFile();
-      ROS_INFO("[MPCTracker::testCase] Saved MPC solutions to file: %s", _outputCSVFile.c_str());
    }
 
    if(_plot)
@@ -1172,7 +1177,10 @@ void MPCTracker::saveMPCDataToFile(void)
       file << _optimal_control_traj.format(CleanFmt) << sep;
 
       file.close();
+      ROS_INFO("[MPCTracker::saveMPCDataToFile] Saved MPC solutions to file: %s", _outputCSVFile.c_str());
    }
+   else
+      ROS_ERROR("[MPCTracker::saveMPCDataToFile] Coudl not open file %s", _outputCSVFile.c_str());
 }
 
 void MPCTracker::plotSolutions(void)

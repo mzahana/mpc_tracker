@@ -53,7 +53,9 @@ _ref_traj_last_t(ros::Time::now()),
 _drone_state_current_t(ros::Time::now()),
 _drone_state_last_t(ros::Time::now()),
 _pub_pose_path(false),
-_plot(false)
+_plot(false),
+_use_6dof_model(true),
+_reference_frame_id("map")
 {
    _nh_private.param("debug", _debug, true);
    _nh_private.param("pub_pose_path", _pub_pose_path, false);
@@ -67,7 +69,19 @@ _plot(false)
    _nh_private.param("plot", _plot, false);
    _nh_private.param("alt_above_target", _alt_above_target, 2.0);
    _nh_private.param("save_mpc_data", _save_mpc_data, false);
+   _nh_private.param("use_6dof_model", _use_6dof_model, true);
+   _nh_private.param<std::string>("reference_frame_id", _reference_frame_id, "map");
    _nh_private.param<std::string>("output_csv_file", _outputCSVFile, "mpc_data.csv");
+
+   //  Sanity check
+   if (_use_6dof_model)
+   {
+      if (NUM_OF_STATES != 6)
+      {
+         ROS_ERROR("[MPCTracker] NUM_OF_STATES should be equal to 6 for 6DoF model. Exiting...");
+         return;
+      }
+   }
 
    XmlRpc::XmlRpcValue maxVelConfig;
    if (_nh_private.hasParam("max_velocity"))
@@ -187,6 +201,28 @@ void MPCTracker::setTransitionMatrix(void)
    }
 }
 
+void MPCTracker::setTransitionMatrix6DoF(void)
+{
+   // states: [px, vx, py, vy, pz, vz]
+
+   Eigen::MatrixXd A_dt;
+   A_dt = Eigen::MatrixXd::Identity(2,2); // Construct the smaller A matrix
+
+   A_dt(0,1) = _dt;
+
+   _A.resize(NUM_OF_STATES,NUM_OF_STATES);
+   _A = Eigen::MatrixXd::Identity(NUM_OF_STATES,NUM_OF_STATES);
+   
+   _A.block(0,0, 2, 2) = A_dt;
+   _A.block(2,2, 2, 2) = A_dt;
+   _A.block(4,4, 2, 2) = A_dt;
+
+   if(_debug)
+   {
+      std::cout<< "Transition matrix A = " <<std::endl<< _A <<std::endl;
+   }
+}
+
 void MPCTracker::setInputMatrix(void)
 {
    _B.resize(NUM_OF_STATES, NUM_OF_INPUTS);
@@ -202,6 +238,26 @@ void MPCTracker::setInputMatrix(void)
    _B.block(0,0,3,1) = B_dt;
    _B.block(3,1,3,1) = B_dt;
    _B.block(6,2,3,1) = B_dt;
+
+   if(_debug)
+   {
+      std::cout<<"Input matrix B = " << std::endl<< _B <<std::endl;
+   }
+}
+
+
+void MPCTracker::setInputMatrix6DoF(void)
+{
+   _B.resize(NUM_OF_STATES, NUM_OF_INPUTS);
+   _B.setZero();
+
+   Eigen::MatrixXd B_dt;
+   B_dt = Eigen::MatrixXd::Zero(2,1); // Build the blocks of _B
+   B_dt(1,0) = _dt;
+
+   _B.block(0,0, 2,1) = B_dt;
+   _B.block(2,1, 2,1) = B_dt;
+   _B.block(4,2, 2,1) = B_dt;
 
    if(_debug)
    {
@@ -229,6 +285,20 @@ void MPCTracker::setQ(void)
 
    // _Q = _state_weight*Eigen::MatrixXd::Identity(NUM_OF_STATES,NUM_OF_STATES);
 
+
+   if(_debug)
+   {
+      std::cout<<"Q matrix = "<<std::endl<< _Q <<std::endl;
+   }
+}
+
+void MPCTracker::setQ6DoF(void)
+{
+   
+   _Q.resize(NUM_OF_STATES,NUM_OF_STATES); _Q.setZero();
+   _Q(0,0) = _state_weight; // penality on position, x
+   _Q(2,2) = _state_weight; // penality on position, y
+   _Q(4,4) = _state_weight; // penality on position, z
 
    if(_debug)
    {
@@ -383,6 +453,26 @@ void MPCTracker::setStateBounds(void)
    _xMin(8) = -1.0*_maxAccel(2);       _xMax(8) = _maxAccel(2); // az
 }
 
+void MPCTracker::setStateBounds6DoF(void)
+{
+   _xMin.resize(NUM_OF_STATES);
+   _xMin.setZero();
+   _xMax.resize(NUM_OF_STATES);
+   _xMax.setZero();
+
+   // TODO Sanity checks on the values of maxVel, maxAccel
+
+   // states order: [px, vx, py, vy, pz, vz]
+   _xMin(0) = -1.0*OsqpEigen::INFTY;   _xMax(0) = OsqpEigen::INFTY; // px
+   _xMin(1) = -1.0*_maxVel(0);         _xMax(1) = _maxVel(0); // vx
+   
+   _xMin(2) = -1.0*OsqpEigen::INFTY;   _xMax(2) = OsqpEigen::INFTY; // py
+   _xMin(3) = -1.0*_maxVel(1);         _xMax(3) = _maxVel(1); // vy
+
+   _xMin(4) = -1.0*OsqpEigen::INFTY;   _xMax(4) = OsqpEigen::INFTY; // pz
+   _xMin(5) = -1.0*_maxVel(2);         _xMax(5) = _maxVel(2); // vz
+}
+
 void MPCTracker::setControlBounds(void)
 {
    // _uMin = -1.0*_maxJerk;
@@ -480,9 +570,18 @@ bool MPCTracker::initQPSolver(void)
 bool MPCTracker::initMPCProblem(void)
 {
    ros::WallTime startTime = ros::WallTime::now();
-   setTransitionMatrix(); 
-   setInputMatrix();
-   setQ();
+   if (_use_6dof_model)
+   {
+      setTransitionMatrix6DoF(); 
+      setInputMatrix6DoF();
+      setQ6DoF();
+   }
+   else
+   {
+      setTransitionMatrix(); 
+      setInputMatrix();
+      setQ();
+   }
    setR();
    castMPCToQPHessian();
    _current_drone_state.resize(NUM_OF_STATES,1);
@@ -490,7 +589,11 @@ bool MPCTracker::initMPCProblem(void)
    _referenceTraj = Eigen::MatrixXd::Zero(NUM_OF_STATES*(_mpcWindow+1),1);
    castMPCToQPGradient();
    castMPCToQPConstraintMatrix();
-   setStateBounds();
+   if (_use_6dof_model)
+      setStateBounds6DoF();
+   else
+      setStateBounds();
+      
    setControlBounds();
    castMPCToQPConstraintBounds();
    if (!initQPSolver())
@@ -625,6 +728,81 @@ void MPCTracker::extractSolution(void)
 
 }
 
+void MPCTracker::extractSolution6Dof(void)
+{
+   Eigen::VectorXd QPSolution;
+   QPSolution = _qpSolver.getSolution();
+
+   // State trajectory, [x(0), x(1), ... , x(N)]
+   _optimal_state_traj = QPSolution.block(0, 0, NUM_OF_STATES * (_mpcWindow+1), 1);
+
+   // Control trajectory, [u(0), u(1), ... , u(N-1)]
+   auto N_x = NUM_OF_STATES * (_mpcWindow+1);
+   auto N_u = NUM_OF_INPUTS*_mpcWindow;
+   _optimal_control_traj = QPSolution.block(N_x, 0, N_u, 1);
+
+   // Control solution at t=0, u(0)
+   _mpc_ctrl_sol = _optimal_control_traj.segment(0,NUM_OF_INPUTS);
+
+   _optimal_traj_px.resize(_mpcWindow+1);
+   _optimal_traj_py.resize(_mpcWindow+1);
+   _optimal_traj_pz.resize(_mpcWindow+1);
+   _optimal_traj_vx.resize(_mpcWindow+1);
+   _optimal_traj_vy.resize(_mpcWindow+1);
+   _optimal_traj_vz.resize(_mpcWindow+1);
+
+   _optimal_traj_ux.resize(_mpcWindow);
+   _optimal_traj_uy.resize(_mpcWindow);
+   _optimal_traj_uz.resize(_mpcWindow);
+
+   _ref_traj_px.resize(_mpcWindow+1);
+   _ref_traj_py.resize(_mpcWindow+1);
+   _ref_traj_pz.resize(_mpcWindow+1);
+   _ref_traj_vx.resize(_mpcWindow+1);
+   _ref_traj_vy.resize(_mpcWindow+1);
+   _ref_traj_vz.resize(_mpcWindow+1);
+
+   // Update _posehistory_vector for visualiztion
+   _posehistory_vector.resize(_mpcWindow+1);
+   geometry_msgs::PoseStamped pose_msg;
+   auto start_t = ros::Time::now();
+   for (int i=0; i < _mpcWindow+1; i++)
+   {
+      pose_msg.header.frame_id="map";
+      pose_msg.header.stamp = start_t + ros::Duration(i*_dt);
+      pose_msg.pose.position.x = _optimal_state_traj(i*NUM_OF_STATES+0);
+      pose_msg.pose.position.y = _optimal_state_traj(i*NUM_OF_STATES+2);
+      pose_msg.pose.position.z = _optimal_state_traj(i*NUM_OF_STATES+4);
+      pose_msg.pose.orientation.w=1.0; // Keep 0 rotation, for now
+
+      _optimal_traj_px(i) = _optimal_state_traj(i*NUM_OF_STATES+0);
+      _optimal_traj_py(i) = _optimal_state_traj(i*NUM_OF_STATES+2);
+      _optimal_traj_pz(i) = _optimal_state_traj(i*NUM_OF_STATES+4);
+
+      _optimal_traj_vx(i) = _optimal_state_traj(i*NUM_OF_STATES+1);
+      _optimal_traj_vy(i) = _optimal_state_traj(i*NUM_OF_STATES+3);
+      _optimal_traj_vz(i) = _optimal_state_traj(i*NUM_OF_STATES+5);
+
+      _ref_traj_px(i) = _referenceTraj(i*NUM_OF_STATES+0, 0);
+      _ref_traj_py(i) = _referenceTraj(i*NUM_OF_STATES+2, 0);
+      _ref_traj_pz(i) = _referenceTraj(i*NUM_OF_STATES+4, 0);
+
+      _ref_traj_vx(i) = _referenceTraj(i*NUM_OF_STATES+1, 0);
+      _ref_traj_vy(i) = _referenceTraj(i*NUM_OF_STATES+3, 0);
+      _ref_traj_vz(i) = _referenceTraj(i*NUM_OF_STATES+5, 0);
+
+      if(i<_mpcWindow)
+      {
+         _optimal_traj_ux(i) = _optimal_control_traj(i*NUM_OF_INPUTS+0);
+         _optimal_traj_uy(i) = _optimal_control_traj(i*NUM_OF_INPUTS+1);
+         _optimal_traj_uz(i) = _optimal_control_traj(i*NUM_OF_INPUTS+2);
+      }
+
+      _posehistory_vector.insert(_posehistory_vector.begin(), pose_msg);
+   }
+
+}
+
 void MPCTracker::mpcLoop(void)
 {
    ros::WallTime startTime = ros::WallTime::now();
@@ -688,7 +866,21 @@ void MPCTracker::droneOdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
    _drone_state_current_t = msg->header.stamp;
    _current_drone_state.setZero();
    // TODO Sync time stamps of _current_drone_accel with pose, before adding it to _current_drone_state
-   // WARNING state order: [px, vx, ax, py, vy, ay, pz, vz, az]
+   //  state order: [px, vx, ax, py, vy, ay, pz, vz, az]
+   //  state order for 6DoF: [px, vx, py, vy, pz, vz]
+
+   if (_use_6dof_model)
+   {
+      _current_drone_state(0,0) = msg->pose.pose.position.x;
+      _current_drone_state(1,0) = msg->twist.twist.linear.x;
+
+      _current_drone_state(2,0) = msg->pose.pose.position.y;
+      _current_drone_state(3,0) = msg->twist.twist.linear.y;
+
+      _current_drone_state(4,0) = msg->pose.pose.position.z;
+      _current_drone_state(5,0) = msg->twist.twist.linear.z;
+      return;
+   }
    _current_drone_state(0,0) = msg->pose.pose.position.x;
    _current_drone_state(1,0) = msg->twist.twist.linear.x;
    _current_drone_state(2,0) = _current_drone_accel(0);
@@ -739,24 +931,41 @@ void MPCTracker::refTrajCallback(const mpc_tracker::StateTrajectory::ConstPtr& m
    _referenceTraj.setZero();
    for (int i=0; i<_mpcWindow+1; i++)
    {
-      _referenceTraj(i*NUM_OF_STATES+0,0) = msg->states[i].position.x;
-      _referenceTraj(i*NUM_OF_STATES+1,0) = msg->states[i].velocity.x;
-      _referenceTraj(i*NUM_OF_STATES+2,0) = msg->states[i].acceleration.x;
+      if (_use_6dof_model)
+      {
+         _referenceTraj(i*NUM_OF_STATES+0,0) = msg->states[i].position.x;
+         _referenceTraj(i*NUM_OF_STATES+1,0) = msg->states[i].velocity.x;
 
-      _referenceTraj(i*NUM_OF_STATES+3,0) = msg->states[i].position.y;
-      _referenceTraj(i*NUM_OF_STATES+4,0) = msg->states[i].velocity.y;
-      _referenceTraj(i*NUM_OF_STATES+5,0) = msg->states[i].acceleration.y;
+         _referenceTraj(i*NUM_OF_STATES+2,0) = msg->states[i].position.y;
+         _referenceTraj(i*NUM_OF_STATES+3,0) = msg->states[i].velocity.y;
 
-      _referenceTraj(i*NUM_OF_STATES+6,0) = msg->states[i].position.z;
-      _referenceTraj(i*NUM_OF_STATES+7,0) = msg->states[i].velocity.z;
-      _referenceTraj(i*NUM_OF_STATES+8,0) = msg->states[i].acceleration.z;
+         _referenceTraj(i*NUM_OF_STATES+4,0) = msg->states[i].position.z;
+         _referenceTraj(i*NUM_OF_STATES+5,0) = msg->states[i].velocity.z;
+      }
+      else
+      {
+         _referenceTraj(i*NUM_OF_STATES+0,0) = msg->states[i].position.x;
+         _referenceTraj(i*NUM_OF_STATES+1,0) = msg->states[i].velocity.x;
+         _referenceTraj(i*NUM_OF_STATES+2,0) = msg->states[i].acceleration.x;
+
+         _referenceTraj(i*NUM_OF_STATES+3,0) = msg->states[i].position.y;
+         _referenceTraj(i*NUM_OF_STATES+4,0) = msg->states[i].velocity.y;
+         _referenceTraj(i*NUM_OF_STATES+5,0) = msg->states[i].acceleration.y;
+
+         _referenceTraj(i*NUM_OF_STATES+6,0) = msg->states[i].position.z;
+         _referenceTraj(i*NUM_OF_STATES+7,0) = msg->states[i].velocity.z;
+         _referenceTraj(i*NUM_OF_STATES+8,0) = msg->states[i].acceleration.z;
+      }
    }
 
    /* Solve MPC problem ! */
    mpcLoop(); // Update & solve
 
    // Extract solutions, updates _optimal_state_traj, _optimal_control_traj, _mpc_ctrl_sol
-   extractSolution();
+   if(_use_6dof_model)
+      extractSolution6Dof();
+   else
+      extractSolution();
 
    // Publish desired trajectory, visualization, ... etc
    if(_pub_pose_path)
@@ -779,7 +988,7 @@ void MPCTracker::pubPoseHistory(void)
    nav_msgs::Path msg;
 
    msg.header.stamp = _posehistory_vector[0].header.stamp;
-   msg.header.frame_id = "map";
+   msg.header.frame_id = _reference_frame_id;
    msg.poses = _posehistory_vector;
 
    _poseHistory_pub.publish(msg);
@@ -805,8 +1014,16 @@ void MPCTracker::testCases(void)
    // states order: [px, vx, ax, py, vy, ay, pz, vz, az]
    for (int i=0; i<_mpcWindow+1; i++)
    {
-      _referenceTraj(i*NUM_OF_STATES+6,0) = 1.0; // z coordinate at all times
-      _referenceTraj(i*NUM_OF_STATES+0,0) = 10.0; // x coordinate at all times
+      if (_use_6dof_model)
+      {
+         _referenceTraj(i*NUM_OF_STATES+4,0) = 1.0; // z coordinate at all times
+         _referenceTraj(i*NUM_OF_STATES+0,0) = 10.0; // x coordinate at all time
+      }
+      else
+      {
+         _referenceTraj(i*NUM_OF_STATES+6,0) = 1.0; // z coordinate at all times
+         _referenceTraj(i*NUM_OF_STATES+0,0) = 10.0; // x coordinate at all times  
+      }
    }
 
    if(_debug)
@@ -815,9 +1032,20 @@ void MPCTracker::testCases(void)
    }
    // Current drone state
    _current_drone_state.setZero();
-   // state order: [px, vx, vz, py, vy ,ay, pz, vz, az]
-   _current_drone_state(6,0)=0.1; // pz
-   _current_drone_state(7,0)=0.0; // vz
+   if (_use_6dof_model)
+   {
+      // state order: [px, vx, py, vy, pz, vz]
+      _current_drone_state(0,0)=0.1; // px
+      _current_drone_state(2,0)=-0.5; // py
+      _current_drone_state(4,0)=0.1; // pz
+   }
+   else
+   {
+      // state order: [px, vx, ax, py, vy ,ay, pz, vz, az]
+      _current_drone_state(0,0)=0.1; // px
+      _current_drone_state(3,0)=-0.5; // py
+      _current_drone_state(6,0)=0.1; // pz
+   }
 
 
    if(_debug)
@@ -994,20 +1222,37 @@ void MPCTracker::plotSolutions(void)
    plotty::plot(times, _ref_traj_vz, "--");
    plotty::title("z-velocity");
 
-   plotty::subplot(3, 3, 7);
-   plotty::plot(times, _optimal_traj_ax);
-   plotty::plot(times, _ref_traj_ax, "--");
-   plotty::title("x-acceleration");
+   if (_use_6dof_model)
+   {
+      plotty::subplot(3, 3, 7);
+      plotty::plot(times.segment(0, _mpcWindow), _optimal_traj_ux);
+      plotty::title("x-acceleration");
 
-   plotty::subplot(3, 3, 8);
-   plotty::plot(times, _optimal_traj_ay);
-   plotty::plot(times, _ref_traj_ay, "--");
-   plotty::title("y-acceleration");
+      plotty::subplot(3, 3, 8);
+      plotty::plot(times.segment(0, _mpcWindow), _optimal_traj_uy);
+      plotty::title("y-acceleration");
 
-   plotty::subplot(3, 3, 9);
-   plotty::plot(times, _optimal_traj_az);
-   plotty::plot(times, _ref_traj_az, "--");
-   plotty::title("z-acceleration");
+      plotty::subplot(3, 3, 9);
+      plotty::plot(times.segment(0, _mpcWindow), _optimal_traj_uz);
+      plotty::title("z-acceleration");
+   }
+   else
+   {
+      plotty::subplot(3, 3, 7);
+      plotty::plot(times, _optimal_traj_ax);
+      plotty::plot(times, _ref_traj_ax, "--");
+      plotty::title("x-acceleration");
+
+      plotty::subplot(3, 3, 8);
+      plotty::plot(times, _optimal_traj_ay);
+      plotty::plot(times, _ref_traj_ay, "--");
+      plotty::title("y-acceleration");
+
+      plotty::subplot(3, 3, 9);
+      plotty::plot(times, _optimal_traj_az);
+      plotty::plot(times, _ref_traj_az, "--");
+      plotty::title("z-acceleration");
+   }
 
    plotty::show();
 }

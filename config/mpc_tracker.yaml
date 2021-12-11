@@ -5,8 +5,16 @@ pub_pose_path: True
 run_test_cases: True
 # Plot only test cases
 plot: True
+# Use 6DoF (position, velocity), instead of 9DoF (position, velocity, acceleration)
+use_6dof_model: True
 
+# Localization frame id. Pose trajectory is published  with respect to it
+reference_frame_id: "map"
+
+# Smooth control signal, to avoid large control jumps 
 enable_control_smoothing: False
+# Weight/penality on control input differences
+smooth_input_weight: 0.1
 
 # 3D velocity limits in m/s. Shoild be >= 0
 # [x,y,z]
@@ -29,8 +37,6 @@ state_weight: 5000
 # Optimization penalty on the control inuputs (R)
 input_weight: 0.1
 
-# Weight/penality on control input smoothness
-smooth_input_weight: 0.1
 
 # Smapling time in seconds
 dt: 0.05

@@ -9,7 +9,9 @@ cd scripts
 ```
 
 # Testing
-The followin launch file runs the `mpc_tracker_node`, with a test case.
-```bash
-roslaunch mpc_tracker mpc_tracker.launch
-```
+* Adjust cnfiguration parameters in `config/mpc_tracker.yaml`
+
+* The following launch file runs the `mpc_tracker_node`, with a test case.
+    ```bash
+    roslaunch mpc_tracker mpc_tracker.launch
+    ```

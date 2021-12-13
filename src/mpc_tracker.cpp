@@ -138,6 +138,7 @@ _reference_frame_id("map")
 
    // Publishers
    _poseHistory_pub = _nh.advertise<nav_msgs::Path>("mpc_tracker/path", 10);
+   _desired_traj_pub = _nh.advertise<mpc_tracker::StateTrajectory>("mpc_tracker/trajectory", 10);
 
    // Services
    _engageCtrl_srv = _nh.advertiseService("mpc_commander/engage", &MPCTracker::engageMPCCallback, this);
@@ -687,6 +688,8 @@ void MPCTracker::extractSolution(void)
    _ref_traj_ay.resize(_mpcWindow+1);
    _ref_traj_az.resize(_mpcWindow+1);
 
+   _solution_traj_msg.states.resize(_mpcWindow);
+
    // Update _posehistory_vector for visualiztion
    _posehistory_vector.resize(_mpcWindow+1);
    geometry_msgs::PoseStamped pose_msg;
@@ -729,10 +732,27 @@ void MPCTracker::extractSolution(void)
          _optimal_traj_ux(i) = _optimal_control_traj(i*NUM_OF_INPUTS+0);
          _optimal_traj_uy(i) = _optimal_control_traj(i*NUM_OF_INPUTS+1);
          _optimal_traj_uz(i) = _optimal_control_traj(i*NUM_OF_INPUTS+2);
+
+         // Fill ROS msg
+         _solution_traj_msg.states[i].time_from_start = (i+1)*_dt;
+         _solution_traj_msg.states[i].position.x = _optimal_state_traj( (i+1)*NUM_OF_STATES+0 );
+         _solution_traj_msg.states[i].position.y = _optimal_state_traj( (i+1)*NUM_OF_STATES+3 );
+         _solution_traj_msg.states[i].position.z = _optimal_state_traj( (i+1)*NUM_OF_STATES+6 );
+         _solution_traj_msg.states[i].velocity.x = _optimal_state_traj( (i+1)*NUM_OF_STATES+1 );
+         _solution_traj_msg.states[i].velocity.y = _optimal_state_traj( (i+1)*NUM_OF_STATES+4 );
+         _solution_traj_msg.states[i].velocity.z = _optimal_state_traj( (i+1)*NUM_OF_STATES+6 );
+         _solution_traj_msg.states[i].acceleration.x = _optimal_state_traj( (i+1)*NUM_OF_STATES+2 );
+         _solution_traj_msg.states[i].acceleration.y = _optimal_state_traj( (i+1)*NUM_OF_STATES+5 );
+         _solution_traj_msg.states[i].acceleration.z = _optimal_state_traj( (i+1)*NUM_OF_STATES+8 );
       }
 
       _posehistory_vector.insert(_posehistory_vector.begin(), pose_msg);
    }
+
+   _solution_traj_msg.header.stamp = start_t;
+   _solution_traj_msg.header.frame_id = _reference_frame_id;
+   _solution_traj_msg.max_acceleration = _maxAccel. maxCoeff();
+   _solution_traj_msg.max_velocity = _maxVel. maxCoeff();
 
 }
 
@@ -770,6 +790,8 @@ void MPCTracker::extractSolution6Dof(void)
    _ref_traj_vy.resize(_mpcWindow+1);
    _ref_traj_vz.resize(_mpcWindow+1);
 
+   _solution_traj_msg.states.resize(_mpcWindow);
+
    // Update _posehistory_vector for visualiztion
    _posehistory_vector.resize(_mpcWindow+1);
    geometry_msgs::PoseStamped pose_msg;
@@ -804,10 +826,27 @@ void MPCTracker::extractSolution6Dof(void)
          _optimal_traj_ux(i) = _optimal_control_traj(i*NUM_OF_INPUTS+0);
          _optimal_traj_uy(i) = _optimal_control_traj(i*NUM_OF_INPUTS+1);
          _optimal_traj_uz(i) = _optimal_control_traj(i*NUM_OF_INPUTS+2);
+
+         // Fill ROS msg
+         _solution_traj_msg.states[i].time_from_start = (i+1)*_dt;
+         _solution_traj_msg.states[i].position.x = _optimal_state_traj( (i+1)*NUM_OF_STATES+0 );
+         _solution_traj_msg.states[i].position.y = _optimal_state_traj( (i+1)*NUM_OF_STATES+2 );
+         _solution_traj_msg.states[i].position.z = _optimal_state_traj( (i+1)*NUM_OF_STATES+4 );
+         _solution_traj_msg.states[i].velocity.x = _optimal_state_traj( (i+1)*NUM_OF_STATES+1 );
+         _solution_traj_msg.states[i].velocity.y = _optimal_state_traj( (i+1)*NUM_OF_STATES+3 );
+         _solution_traj_msg.states[i].velocity.z = _optimal_state_traj( (i+1)*NUM_OF_STATES+5 );
+         _solution_traj_msg.states[i].acceleration.x = _optimal_control_traj(i*NUM_OF_INPUTS+0);
+         _solution_traj_msg.states[i].acceleration.y = _optimal_control_traj(i*NUM_OF_INPUTS+1);
+         _solution_traj_msg.states[i].acceleration.z = _optimal_control_traj(i*NUM_OF_INPUTS+2);
       }
 
       _posehistory_vector.insert(_posehistory_vector.begin(), pose_msg);
    }
+
+   _solution_traj_msg.header.stamp = start_t;
+   _solution_traj_msg.header.frame_id = _reference_frame_id;
+   _solution_traj_msg.max_acceleration = _maxAccel. maxCoeff();
+   _solution_traj_msg.max_velocity = _maxVel. maxCoeff();
 
 }
 
@@ -910,7 +949,7 @@ void MPCTracker::refTrajCallback(const mpc_tracker::StateTrajectory::ConstPtr& m
    // the rate of Odom (drone state) (default 30Hz from mavros/local_position/odom),
    // and _referenceTraj
    // and the size of MPC problem
-   // The MPC rate will be close to the min(odom, _referenceTraj, MPC execution)
+   // The MPC rate will be close to the min(odom, _referenceTraj, MPC execution time)
 
    // Make sure we have a new reference trajectory
    auto dt = (msg->header.stamp - _ref_traj_last_t).toSec();
@@ -982,6 +1021,9 @@ void MPCTracker::refTrajCallback(const mpc_tracker::StateTrajectory::ConstPtr& m
    {
       pubPoseHistory();
    }
+
+   // Publish optimal trajectory
+   _desired_traj_pub.publish(_solution_traj_msg);
 }
 
 
@@ -1091,6 +1133,8 @@ void MPCTracker::testCases(void)
       extractSolution6Dof();
    else
       extractSolution();
+
+   _desired_traj_pub.publish(_solution_traj_msg);
 
    if(_debug)
    {

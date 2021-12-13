@@ -6,6 +6,7 @@ set (CMAKE_CXX_STANDARD 11)
 
 find_package(Eigen3)
 find_package(OsqpEigen)
+find_package(geodetic_utils REQUIRED)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -22,6 +23,10 @@ find_package(catkin REQUIRED COMPONENTS
   osqp
   message_generation
   plotty
+  mav_msgs
+  mav_trajectory_generation
+  mav_trajectory_generation_ros
+  geodetic_utils
 )
 
 
@@ -32,12 +37,22 @@ add_message_files(
   StateTrajectory.msg
 )
 
+# Generate services in the 'srv' folder
+add_service_files(
+  FILES
+  ExecutePathFromFile.srv
+  GoToHeight.srv
+  GoToPoseWaypoints.srv
+  GoToWaypoint.srv
+  GoToWaypoints.srv
+)
+
 generate_messages(DEPENDENCIES geometry_msgs std_msgs)
 
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs nav_msgs sensor_msgs message_runtime
+  CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs nav_msgs sensor_msgs message_runtime 
 )
 
 ###########
@@ -70,3 +85,13 @@ add_executable(mpc_tracker_node
 )
 add_dependencies(mpc_tracker_node mpc_tracker ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(mpc_tracker_node mpc_tracker ${catkin_LIBRARIES} OsqpEigen::OsqpEigen osqp::osqp)
+
+#
+# waypoint_navigator
+#
+add_executable(navigator_node
+  src/navigator_node.cpp
+)
+add_dependencies(navigator_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+target_link_libraries(navigator_node ${catkin_LIBRARIES})

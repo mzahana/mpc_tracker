@@ -67,6 +67,19 @@
   <build_depend>message_generation</build_depend>
   <exec_depend>message_runtime</exec_depend>
 
+  <build_depend>glog_catkin</build_depend>
+  <exec_depend>glog_catkin</exec_depend>
+  <build_depend>geodetic_utils</build_depend>
+  <exec_depend>geodetic_utils</exec_depend>
+  <build_depend>mav_msgs</build_depend>
+  <exec_depend>mav_msgs</exec_depend>
+  <build_depend>mav_trajectory_generation_ros</build_depend>
+  <exec_depend>mav_trajectory_generation_ros</exec_depend>
+  <build_depend>mav_planning_msgs</build_depend>
+  <exec_depend>mav_planning_msgs</exec_depend>
+  <build_depend>roslib</build_depend>
+  <exec_depend>roslib</exec_depend>
+
   <build_depend>nlopt</build_depend>
 
 

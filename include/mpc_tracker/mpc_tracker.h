@@ -190,6 +190,7 @@ private:
   Eigen::VectorXd       _ref_traj_ax;           /** Reference trajectory, acceleration, x component */
   Eigen::VectorXd       _ref_traj_ay;           /** Reference trajectory, acceleration, y component */
   Eigen::VectorXd       _ref_traj_az;           /** Reference trajectory, acceleration, z component */
+  mpc_tracker::StateTrajectory _solution_traj_msg; /** ROS message for the optimal trajectory, position, velocity, acceleration, max velocity, max acceleration */
   ros::Time             _ref_traj_last_t;       /** Time stamp of the last reference trajectory */
   
   int                   _mpcWindow;             /** Number of prediction steps (N) */

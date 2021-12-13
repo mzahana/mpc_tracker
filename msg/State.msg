@@ -11,3 +11,6 @@ geometry_msgs/Point velocity
 
 # 3D acceleration
 geometry_msgs/Point acceleration
+
+# Yaw angle in radians
+float64 yaw

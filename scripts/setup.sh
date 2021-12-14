@@ -39,7 +39,7 @@ else
     cd $HOME/catkin_ws/src/catkin_simple && git pull
 fi
 
-ETHZ_PKG="eigen_catkin mav_comm eigen_checks glog_catkin nlopt geodetic_utils mav_trajectory_generation plotty"
+ETHZ_PKG="eigen_catkin mav_comm eigen_checks glog_catkin nlopt geodetic_utils mav_trajectory_generation plotty waypoint_navigator"
 for p in $ETHZ_PKG; do
     if [ ! -d "$HOME/catkin_ws/src/$p" ]; then
         cd $HOME/catkin_ws/src
@@ -49,14 +49,15 @@ for p in $ETHZ_PKG; do
     fi
 done
 
-if [ ! -d "$HOME/catkin_ws/src/waypoint_navigator" ]; then
-    cd $HOME/catkin_ws/src
-    git clone https://github.com/mzahana/waypoint_navigator
-else
-    cd $HOME/catkin_ws/src/waypoint_navigator && git pull
-fi
 # waypoint_navigator: Change branch
-cd $HOME/catkin_ws/src/waypoint_navigator && git checkout full_state
+cd $HOME/catkin_ws/src/waypoint_navigator && git checkout fix/abort_path
+
+if [ ! -d "$HOME/catkin_ws/src/trajectory_msgs" ]; then
+    cd $HOME/catkin_ws/src
+    git clone https://github.com/mzahana/trajectory_msgs.git
+else
+    cd $HOME/catkin_ws/src/trajectory_msgs && git pull
+fi
 
 
 # mavros_controllers (geometric controller SE(3)/SO(3) )

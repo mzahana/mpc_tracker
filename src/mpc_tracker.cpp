@@ -706,6 +706,7 @@ void MPCTracker::extractSolution(void)
       pose_msg.pose.position.y = _optimal_state_traj(i*NUM_OF_STATES+3);
       pose_msg.pose.position.z = _optimal_state_traj(i*NUM_OF_STATES+6);
       pose_msg.pose.orientation.w=1.0; // Keep 0 rotation
+      _posehistory_vector[i] = pose_msg;
 
       _optimal_traj_px(i) = _optimal_state_traj(i*NUM_OF_STATES+0);
       _optimal_traj_py(i) = _optimal_state_traj(i*NUM_OF_STATES+3);
@@ -749,8 +750,6 @@ void MPCTracker::extractSolution(void)
          _solution_traj_msg.states[i].acceleration.y = _optimal_state_traj( (i+1)*NUM_OF_STATES+5 );
          _solution_traj_msg.states[i].acceleration.z = _optimal_state_traj( (i+1)*NUM_OF_STATES+8 );
       }
-
-      _posehistory_vector.insert(_posehistory_vector.begin(), pose_msg);
    }
 
    _solution_traj_msg.header.stamp = start_t;
@@ -808,6 +807,8 @@ void MPCTracker::extractSolution6Dof(void)
       pose_msg.pose.position.y = _optimal_state_traj(i*NUM_OF_STATES+2);
       pose_msg.pose.position.z = _optimal_state_traj(i*NUM_OF_STATES+4);
       pose_msg.pose.orientation.w=1.0; // Keep 0 rotation, for now
+      // _posehistory_vector.insert(_posehistory_vector.begin(), pose_msg);
+      _posehistory_vector[i] = pose_msg;
 
       _optimal_traj_px(i) = _optimal_state_traj(i*NUM_OF_STATES+0);
       _optimal_traj_py(i) = _optimal_state_traj(i*NUM_OF_STATES+2);
@@ -843,8 +844,6 @@ void MPCTracker::extractSolution6Dof(void)
          _solution_traj_msg.states[i].acceleration.y = _optimal_control_traj(i*NUM_OF_INPUTS+1);
          _solution_traj_msg.states[i].acceleration.z = _optimal_control_traj(i*NUM_OF_INPUTS+2);
       }
-
-      _posehistory_vector.insert(_posehistory_vector.begin(), pose_msg);
    }
 
    _solution_traj_msg.header.stamp = start_t;

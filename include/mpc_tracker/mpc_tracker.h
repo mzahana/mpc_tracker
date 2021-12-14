@@ -35,6 +35,7 @@ SOFTWARE.
 #include <mavros_msgs/PositionTarget.h> // MAVROS setpoint msg
 #include <std_srvs/SetBool.h>
 #include <std_srvs/Empty.h>
+#include <std_msgs/Empty.h>
 #include <mavros_msgs/State.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/CommandBool.h>
@@ -158,8 +159,9 @@ private:
 
   ros::Subscriber       _dronePose_sub;         /** REMOVE Drone's pose subscriber */
   ros::Subscriber       _droneOdom_sub;         /** Drone's odometry subscriber, to get position/velocity, "mavros/local_position/odom" */
-  ros::Subscriber       _droneImu_sub;         /** Drone's IMU subscriber, to get acceleration, "mavros/imu/data" */
+  ros::Subscriber       _droneImu_sub;          /** Drone's IMU subscriber, to get acceleration, "mavros/imu/data" */
   ros::Subscriber       _referenceTraj_sub;     /** Subscriber to the target predicted trajectory. Referene trajectory of the MPC */
+  ros::Subscriber       _testCase_sub;          /** Subscriber for running testCases() function */
 
   ros::Publisher        _desired_traj_pub;      /** Desired trajectory sent to the trajectory planner/sampler */
   ros::Publisher        _poseHistory_pub;       /** ROS Publisher for _posehistory_vector */
@@ -277,6 +279,11 @@ private:
   * @param msg mpc_tracker::StateTrajectory
   */
   void refTrajCallback(const mpc_tracker::StateTrajectory::ConstPtr& msg);
+
+  /**
+  * @brief A callback that allows testCses() peroidically by publishing to a topic
+  */
+  void testCasesCallback(const std_msgs::Empty::ConstPtr& msg);
 
   /**
    * @brief Sets the states weight matrix, Q in x^T * Q * x.

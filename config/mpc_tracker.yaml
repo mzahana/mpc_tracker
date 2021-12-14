@@ -1,12 +1,15 @@
 debug: False
+# Use 6DoF (position, velocity), instead of 9DoF (position, velocity, acceleration)
+use_6dof_model: True
 # Publish pose path for visualizaion ni RViz
 pub_pose_path: True
 # If True, test cases will be run. No ROS subscribers
 run_test_cases: True
 # Plot only test cases
-plot: True
-# Use 6DoF (position, velocity), instead of 9DoF (position, velocity, acceleration)
-use_6dof_model: True
+plot: False
+# Full path to CSV where MPC data is saved
+save_mpc_data: False
+output_csv_file: "/home/arrow/shared_volume/mpc_data.csv"
 
 # Localization frame id. Pose trajectory is published  with respect to it
 reference_frame_id: "map"
@@ -40,7 +43,3 @@ input_weight: 0.5
 
 # Smapling time in seconds
 dt: 0.03
-
-# Full path to CSV where MPC data is saved
-save_mpc_data: True
-output_csv_file: "/home/arrow/shared_volume/mpc_data.csv"

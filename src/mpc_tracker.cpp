@@ -135,6 +135,10 @@ _reference_frame_id("map")
       _droneImu_sub =  _nh.subscribe("mavros/imu/data", 1, &MPCTracker::droneImuCallback, this);
       _referenceTraj_sub = _nh.subscribe("mpc_tracker/ref_traj",1, &MPCTracker::refTrajCallback, this);
    }
+   else
+   {
+      _testCase_sub = _nh.subscribe("mpc_tracker/test_cases",1, &MPCTracker::testCasesCallback, this);
+   }
 
    // Publishers
    _poseHistory_pub = _nh.advertise<nav_msgs::Path>("mpc_tracker/path", 10);
@@ -1026,6 +1030,13 @@ void MPCTracker::refTrajCallback(const mpc_tracker::StateTrajectory::ConstPtr& m
    _desired_traj_pub.publish(_solution_traj_msg);
 }
 
+void MPCTracker::testCasesCallback(const std_msgs::Empty::ConstPtr& msg)
+{
+   if(_run_test_cases)
+   {
+      testCases();
+   }
+}
 
 void MPCTracker::appendPoseHistory(geometry_msgs::PoseStamped pose_msg)
 {

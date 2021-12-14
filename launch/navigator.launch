@@ -1,0 +1,14 @@
+ <launch>
+    <arg name="vehicle" default="iris"/>   
+    <arg name="ns" default="interceptor"/>
+    <group ns="$(arg ns)">
+      <!-- Takes waypoints+velocity reference+accel reference, and generates feasible trajectory -->
+      <node name="navigator_node" pkg="mpc_tracker" type="navigator_node"  respawn="true" clear_params="true" output="screen">
+          <rosparam file="$(find mpc_tracker)/config/trajectory_simple_enu.yaml"/>
+          <param name="mav_name" type="string" value="$(arg vehicle)" />
+          <param name="frame_id" type="string" value="local_origin" />
+          <remap from="odometry" to="mavros/local_position/odom" />
+          <remap from="path_segments" to="path_segments_4D"/>
+      </node>
+    </group>
+</launch>

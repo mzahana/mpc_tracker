@@ -110,7 +110,7 @@ NavigatorNode::NavigatorNode(const ros::NodeHandle& nh,
   }
 
   LOG(INFO)
-      << "Waypoint navigator ready. Call 'execute_path' service to get going.";
+      << "Waypoint navigator ready. Publish to mpc_tracker/trajectory topic to get going.";
 }
 
 void NavigatorNode::loadParameters() {
@@ -668,6 +668,7 @@ void NavigatorNode::odometryCallback(
 
 void NavigatorNode::stateTrajCallback(const mpc_tracker::StateTrajectoryConstPtr& msg)
 {
+  ROS_INFO("[navigator::stateTrajCallback] Received trajectory");
   coarse_waypoints_.clear();
   current_leg_ = 0;
   timer_counter_ = 0;

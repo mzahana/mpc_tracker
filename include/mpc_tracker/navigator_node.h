@@ -45,7 +45,7 @@ SOFTWARE.
 #include <Eigen/Eigen>
 #include <geodetic_utils/geodetic_conv.hpp>
 #include "tf/tf.h"
-#include "mpc_tracker/StateTrajectory.h"
+#include "trajectory_msgs/StateTrajectory.h"
 #include "mpc_tracker/ExecutePathFromFile.h"
 #include "mpc_tracker/GoToHeight.h"
 #include "mpc_tracker/GoToPoseWaypoints.h"
@@ -123,7 +123,7 @@ class NavigatorNode {
 
   void odometryCallback(const nav_msgs::OdometryConstPtr& odometry_message);
 
-  void stateTrajCallback(const mpc_tracker::StateTrajectoryConstPtr& msg);
+  void stateTrajCallback(const trajectory_msgs::StateTrajectoryConstPtr& msg);
 
   static const double kCommandTimerFrequency;
   // Distance before a waypoint is considered reached [m].

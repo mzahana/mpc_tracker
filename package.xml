@@ -66,6 +66,8 @@
   <exec_depend>sensor_msgs</exec_depend>
   <build_depend>message_generation</build_depend>
   <exec_depend>message_runtime</exec_depend>
+  <build_depend>trajectory_msgs</build_depend>
+  <exec_depend>trajectory_msgs</exec_depend>
 
   <build_depend>glog_catkin</build_depend>
   <exec_depend>glog_catkin</exec_depend>

@@ -27,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   mav_trajectory_generation
   mav_trajectory_generation_ros
   geodetic_utils
+  trajectory_msgs
 )
 
 
@@ -52,7 +53,7 @@ generate_messages(DEPENDENCIES geometry_msgs std_msgs)
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs nav_msgs sensor_msgs message_runtime 
+  CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs nav_msgs sensor_msgs message_runtime trajectory_msgs
 )
 
 ###########

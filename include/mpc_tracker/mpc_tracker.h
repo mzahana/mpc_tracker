@@ -40,7 +40,7 @@ SOFTWARE.
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/CommandBool.h>
 
-#include "mpc_tracker/StateTrajectory.h"
+#include "trajectory_msgs/StateTrajectory.h"
 
 #include <stdio.h>
 #include <cstdlib>
@@ -192,7 +192,7 @@ private:
   Eigen::VectorXd       _ref_traj_ax;           /** Reference trajectory, acceleration, x component */
   Eigen::VectorXd       _ref_traj_ay;           /** Reference trajectory, acceleration, y component */
   Eigen::VectorXd       _ref_traj_az;           /** Reference trajectory, acceleration, z component */
-  mpc_tracker::StateTrajectory _solution_traj_msg; /** ROS message for the optimal trajectory, position, velocity, acceleration, max velocity, max acceleration */
+  trajectory_msgs::StateTrajectory _solution_traj_msg; /** ROS message for the optimal trajectory, position, velocity, acceleration, max velocity, max acceleration */
   ros::Time             _ref_traj_last_t;       /** Time stamp of the last reference trajectory */
   
   int                   _mpcWindow;             /** Number of prediction steps (N) */
@@ -278,7 +278,7 @@ private:
   * Updates _referenceTraj
   * @param msg mpc_tracker::StateTrajectory
   */
-  void refTrajCallback(const mpc_tracker::StateTrajectory::ConstPtr& msg);
+  void refTrajCallback(const trajectory_msgs::StateTrajectory::ConstPtr& msg);
 
   /**
   * @brief A callback that allows testCses() peroidically by publishing to a topic

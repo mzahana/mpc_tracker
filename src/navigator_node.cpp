@@ -666,7 +666,7 @@ void NavigatorNode::odometryCallback(
   mav_msgs::eigenOdometryFromMsg(*odometry_message, &odometry_);
 }
 
-void NavigatorNode::stateTrajCallback(const mpc_tracker::StateTrajectoryConstPtr& msg)
+void NavigatorNode::stateTrajCallback(const trajectory_msgs::StateTrajectoryConstPtr& msg)
 {
   coarse_waypoints_.clear();
   current_leg_ = 0;

@@ -668,7 +668,6 @@ void NavigatorNode::odometryCallback(
 
 void NavigatorNode::stateTrajCallback(const mpc_tracker::StateTrajectoryConstPtr& msg)
 {
-  ROS_INFO("[navigator::stateTrajCallback] Received trajectory");
   coarse_waypoints_.clear();
   current_leg_ = 0;
   timer_counter_ = 0;

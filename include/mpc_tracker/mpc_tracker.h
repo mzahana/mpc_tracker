@@ -203,7 +203,7 @@ private:
   Eigen::MatrixXd       _B;                     /** Discrete input matrix */
   double                _state_weight;          /** State weight. */
   double                _input_weight;          /** Input weight. */
-  double                _smooth_input_weight;   /** Weight/penality on input smoothness */
+  double                _smooth_input_weight;   /** Weight/penality on input smoothing term */
   bool                  _enable_control_smoothing; /** Affects the Hessian structure */
   Eigen::MatrixXd       _Q;                     /** States wieght matrix of the quadratic MPC objective. x^T Q x. */
   Eigen::MatrixXd       _R;                     /** Inputs wieght matrix of the quadratic MPC objective. u^T R u. */
@@ -240,7 +240,7 @@ private:
   Eigen::VectorXd       _optimal_traj_uz;       /** Optimal control input trajectory in z direction */
 
   bool                  _debug;                 /** Enable printing debug messages */
-  bool                  _run_test_cases;        /** If ture testCase() is executed, no ROS subscribers */
+  bool                  _run_test_cases;        /** If true testCase() is executed, no ROS subscribers */
   bool                  _is_MPC_initialized;    /** True if MPC problem is initialized */
   bool                  _engage_controller;     /** **REMOVE** Flag for whether to publish MPC controls as setpoints */
   bool                  _is_mpc_engaged;        /** Flag for whether to publish MPC controls as setpoints */

@@ -133,7 +133,7 @@ _reference_frame_id("map")
    {
       _droneOdom_sub =  _nh.subscribe("mavros/local_position/odom", 1, &MPCTracker::droneOdomCallback, this);
       _droneImu_sub =  _nh.subscribe("mavros/imu/data", 1, &MPCTracker::droneImuCallback, this);
-      _referenceTraj_sub = _nh.subscribe("mpc_tracker/ref_traj",1, &MPCTracker::refTrajCallback, this);
+      _referenceTraj_sub = _nh.subscribe("traj_predictor/ref_traj",1, &MPCTracker::refTrajCallback, this, ros::TransportHints().tcpNoDelay());
    }
    else
    {

@@ -11,6 +11,12 @@ plot: False
 save_mpc_data: False
 output_csv_file: "/home/arrow/shared_volume/mpc_data.csv"
 
+# Smapling time in seconds
+dt: 0.03
+
+# Number of MPC horizon steps, shoud be > 1
+mpc_window: 67
+
 # Localization frame id. Pose trajectory is published  with respect to it
 reference_frame_id: "map"
 
@@ -31,15 +37,8 @@ max_acceleration: [5.0, 5.0, 5.0]
 # [x,y,z]
 max_jerk: [2.0, 2.0, 2.0]
 
-# Number of MPC horizon steps, shoud be > 1
-mpc_window: 67
-
 # Optimization penalty on the states (Q)
 state_weight: 7000
 
 # Optimization penalty on the control inuputs (R)
 input_weight: 0.5
-
-
-# Smapling time in seconds
-dt: 0.03

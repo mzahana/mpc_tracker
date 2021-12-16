@@ -19,7 +19,7 @@ dt: 0.03
 mpc_window: 67
 
 # Localization frame id. Pose trajectory is published  with respect to it
-reference_frame_id: "map"
+reference_frame_id: "interceptor_odom"
 
 # Smooth control signal, to avoid large control jumps 
 enable_control_smoothing: False

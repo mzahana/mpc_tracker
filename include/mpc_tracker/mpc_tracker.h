@@ -406,7 +406,7 @@ private:
   /**
    * @brief This is the main loop, which executes MPC control loop.
    */
-  void mpcLoop(void);
+  bool mpcLoop(void);
 
   /**
   * @brief Extracts MPC solutions, contorl/state trajectories, from QP

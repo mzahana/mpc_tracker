@@ -273,12 +273,12 @@ void NavigatorNode::createTrajectoryWithConstrainst() {
       vertex.addConstraint(
           mav_trajectory_generation::derivative_order::POSITION,
           coarse_waypoints_[i].position_W);
-      vertex.addConstraint(
-          mav_trajectory_generation::derivative_order::VELOCITY,
-          coarse_waypoints_[i].velocity_W);
-      vertex.addConstraint(
-          mav_trajectory_generation::derivative_order::ACCELERATION,
-          coarse_waypoints_[i].acceleration_W);
+      // vertex.addConstraint(
+      //     mav_trajectory_generation::derivative_order::VELOCITY,
+      //     coarse_waypoints_[i].velocity_W);
+      // vertex.addConstraint(
+      //     mav_trajectory_generation::derivative_order::ACCELERATION,
+      //     coarse_waypoints_[i].acceleration_W);
     }
     // Yaw.
     if (i != 0) {

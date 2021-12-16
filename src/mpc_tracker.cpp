@@ -853,33 +853,33 @@ void MPCTracker::extractSolution6Dof(void)
 
 }
 
-void MPCTracker::mpcLoop(void)
+bool MPCTracker::mpcLoop(void)
 {
    ros::WallTime startTime = ros::WallTime::now();
 
    if(!_is_MPC_initialized)
    {
       ROS_WARN("MPC controller is not initialized. Skipping MPC loop.");
-      return;
+      return false;
    }
    if(!_drone_state_received)
    {
       ROS_WARN("[MPC controller] Drone state is not received yet. Skipping MPC loop.");
-      return;
+      return false;
    }
 
    // Update gradient and bounds
    if(!updateQP())
    {
       ROS_ERROR("[mpcLoop] Failed to update bounds and gradient");
-      return;
+      return false;
    }
    
    // Solve MPC
    if(!_qpSolver.solve())
    {
       ROS_ERROR("MPC solution is not found");
-      return;
+      return false;
    }
 
    if(_debug)
@@ -913,6 +913,9 @@ void MPCTracker::droneImuCallback(const sensor_msgs::Imu::ConstPtr& msg)
 
 void MPCTracker::droneOdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
+   if(!_drone_state_received)
+      _drone_state_received = true;
+      
    _drone_state_current_t = msg->header.stamp;
    _current_drone_state.setZero();
    // TODO Sync time stamps of _current_drone_accel with pose, before adding it to _current_drone_state
@@ -1011,7 +1014,11 @@ void MPCTracker::refTrajCallback(const trajectory_msgs::StateTrajectory::ConstPt
    }
 
    /* Solve MPC problem ! */
-   mpcLoop(); // Update & solve
+   if(!mpcLoop())
+   {
+      ROS_ERROR("[MPCTracker::refTrajCallback] Error in mpcLooop");
+      return;
+   }
 
    // Extract solutions, updates _optimal_state_traj, _optimal_control_traj, _mpc_ctrl_sol
    if(_use_6dof_model)

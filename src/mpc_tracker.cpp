@@ -142,7 +142,7 @@ _reference_frame_id("map")
 
    // Publishers
    _poseHistory_pub = _nh.advertise<nav_msgs::Path>("mpc_tracker/path", 10);
-   _desired_traj_pub = _nh.advertise<trajectory_msgs::StateTrajectory>("mpc_tracker/trajectory", 10);
+   _desired_traj_pub = _nh.advertise<custom_trajectory_msgs::StateTrajectory>("mpc_tracker/trajectory", 10);
 
    // Services
    _engageCtrl_srv = _nh.advertiseService("mpc_commander/engage", &MPCTracker::engageMPCCallback, this);
@@ -915,7 +915,7 @@ void MPCTracker::droneOdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
 {
    if(!_drone_state_received)
       _drone_state_received = true;
-      
+
    _drone_state_current_t = msg->header.stamp;
    _current_drone_state.setZero();
    // TODO Sync time stamps of _current_drone_accel with pose, before adding it to _current_drone_state
@@ -949,7 +949,7 @@ void MPCTracker::droneOdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
    }
 }
 
-void MPCTracker::refTrajCallback(const trajectory_msgs::StateTrajectory::ConstPtr& msg)
+void MPCTracker::refTrajCallback(const custom_trajectory_msgs::StateTrajectory::ConstPtr& msg)
 {
    // WARNING The rate of MPC is affected by
    // the rate of Odom (drone state) (default 30Hz from mavros/local_position/odom),

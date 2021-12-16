@@ -1,13 +1,23 @@
 <launch>
   <arg name="ns" default="interceptor"/>
-  <include file="$(find mpc_tracker)/launch/navigator.launch">
+
+  <!-- Target trajectory prediction -->
+  <include file="$(find trajectory_prediction)/launch/predictor.launch">
     <arg name="ns" value="$(arg ns)"/>
+    <arg name="target_odom_topic" value="/intruder/odom"/>
   </include>
 
+  <!-- MPC trajectory planing -->
   <include file="$(find mpc_tracker)/launch/mpc_tracker.launch">
     <arg name="ns" value="$(arg ns)"/>
   </include>
 
+  <!-- Feasible trajectory generation -->
+  <include file="$(find mpc_tracker)/launch/navigator.launch">
+    <arg name="ns" value="$(arg ns)"/>
+  </include>
+
+  <!-- Trajectory sampling -->
   <group ns="$(arg ns)">
     <node name="trajectory_sampler" pkg="mav_trajectory_generation_ros" type="trajectory_sampler_node" output="screen" />
   </group>

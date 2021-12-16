@@ -1,5 +1,7 @@
 # Example path with ENU co-ordinates
 
+frame_id: "map"
+
 # Format of coordinates ('gps'/'enu')
 coordinate_type: 'enu'
 

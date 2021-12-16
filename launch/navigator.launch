@@ -6,7 +6,7 @@
       <node name="navigator_node" pkg="mpc_tracker" type="navigator_node"  respawn="true" clear_params="true" output="screen">
           <rosparam file="$(find mpc_tracker)/config/trajectory_simple_enu.yaml"/>
           <param name="mav_name" type="string" value="$(arg vehicle)" />
-          <param name="frame_id" type="string" value="map" />
+          <!-- <param name="frame_id" type="string" value="map" /> -->
           <remap from="odometry" to="mavros/local_position/odom" />
           <remap from="path_segments" to="path_segments_4D"/>
       </node>

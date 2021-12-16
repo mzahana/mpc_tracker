@@ -3,8 +3,9 @@ debug: False
 use_6dof_model: True
 # Publish pose path for visualizaion ni RViz
 pub_pose_path: True
-# If True, test cases will be run. No ROS subscribers
-run_test_cases: True
+# If True, test cases will be run, no ROS subscribers.
+# False, subscribes to reference trajecotry and this vehicle's odom
+run_test_cases: False
 # Plot only test cases
 plot: False
 # Full path to CSV where MPC data is saved

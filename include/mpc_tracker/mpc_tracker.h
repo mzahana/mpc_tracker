@@ -29,6 +29,8 @@ SOFTWARE.
 #include <ros/ros.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <geometry_msgs/Transform.h>
+#include <geometry_msgs/Twist.h>
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
 #include <nav_msgs/Path.h>
@@ -39,6 +41,7 @@ SOFTWARE.
 #include <mavros_msgs/State.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/CommandBool.h>
+#include <trajectory_msgs/MultiDOFJointTrajectory.h>
 
 #include "custom_trajectory_msgs/StateTrajectory.h"
 
@@ -165,6 +168,7 @@ private:
 
   ros::Publisher        _desired_traj_pub;      /** Desired trajectory sent to the trajectory planner/sampler */
   ros::Publisher        _poseHistory_pub;       /** ROS Publisher for _posehistory_vector */
+  ros::Publisher        _multiDofTraj_pub;          /** To publish first MPC control solution to the geometric controller */
   
   ros::ServiceServer    _engageCtrl_srv;        /** Engages/disengages MPC controller */
 
@@ -441,6 +445,11 @@ private:
   * @brief Publishes _posehistory_vector to a ROS topic
   */
   void pubPoseHistory(void);
+
+  /**
+   * @brief Published first MPC control solution u[0] to the geometric controller
+  */ 
+  void pubMultiDofTraj(void);
 
   /**
   * @brief Runs a test case to test the entire MPC loop and the associated functions

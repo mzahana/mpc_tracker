@@ -143,6 +143,7 @@ _reference_frame_id("map")
    // Publishers
    _poseHistory_pub = _nh.advertise<nav_msgs::Path>("mpc_tracker/path", 10);
    _desired_traj_pub = _nh.advertise<custom_trajectory_msgs::StateTrajectory>("mpc_tracker/trajectory", 10);
+   _multiDofTraj_pub = _nh.advertise<trajectory_msgs::MultiDOFJointTrajectory>("command/trajectory", 10);
 
    // Services
    _engageCtrl_srv = _nh.advertiseService("mpc_commander/engage", &MPCTracker::engageMPCCallback, this);
@@ -1034,6 +1035,8 @@ void MPCTracker::refTrajCallback(const custom_trajectory_msgs::StateTrajectory::
 
    // Publish optimal trajectory
    _desired_traj_pub.publish(_solution_traj_msg);
+   // Publish first control solution u[0]
+   pubMultiDofTraj();
 }
 
 void MPCTracker::testCasesCallback(const std_msgs::Empty::ConstPtr& msg)
@@ -1334,6 +1337,46 @@ void MPCTracker::plotSolutions(void)
    plotty::show();
 }
 
+void MPCTracker::pubMultiDofTraj(void)
+{
+   trajectory_msgs::MultiDOFJointTrajectory msg;
+   msg.header.frame_id = _reference_frame_id;
+   msg.header.stamp = ros::Time::now();
+
+   trajectory_msgs::MultiDOFJointTrajectoryPoint point;
+   geometry_msgs::Transform pos; // position
+   geometry_msgs::Twist vel, acc;
+
+   pos.translation.x = _optimal_traj_px(1);
+   pos.translation.y = _optimal_traj_py(1);
+   pos.translation.z = _optimal_traj_pz(1);
+
+   vel.linear.x = _optimal_traj_vx(1);
+   vel.linear.y = _optimal_traj_vy(1);
+   vel.linear.z = _optimal_traj_vz(1);
+
+   if (_use_6dof_model)
+   {
+      acc.linear.x = _optimal_traj_ux(0);
+      acc.linear.y = _optimal_traj_uy(0);
+      acc.linear.z = _optimal_traj_uz(0);
+   }
+   else
+   {
+      acc.linear.x = _optimal_traj_ax(1);
+      acc.linear.y = _optimal_traj_ay(1);
+      acc.linear.z = _optimal_traj_az(1);
+   }
+
+   point.transforms.push_back(pos);
+   point.velocities.push_back(vel);
+   point.accelerations.push_back(acc);
+
+   msg.points.push_back(point);
+
+   _multiDofTraj_pub.publish(msg);
+
+}
 /*
 ********************************************************************
                        !! REMOVE !! Commander class                             

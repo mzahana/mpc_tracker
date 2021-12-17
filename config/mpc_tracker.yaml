@@ -32,14 +32,14 @@ max_velocity: [10.0, 10.0, 10.0]
 
 # 3D (net) acceleration limits in m/s/s. Should be >= 0
 # [x,y,z]
-max_acceleration: [5.0, 5.0, 5.0]
+max_acceleration: [4.0, 4.0, 4.0]
 
 # 3D jerk limits in m/s/s/s. Should be >= 0
 # [x,y,z]
 max_jerk: [2.0, 2.0, 2.0]
 
 # Optimization penalty on the states (Q)
-state_weight: 7000
+state_weight: 5000 # 7000
 
 # Optimization penalty on the control inuputs (R)
-input_weight: 0.5
+input_weight: 50 # 0.5

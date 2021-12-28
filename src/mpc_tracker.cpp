@@ -1370,14 +1370,6 @@ void MPCTracker::pubMultiDofTraj(void)
       acc.linear.z = _optimal_traj_az(1);
    }
 
-   // Minimum altitude constraints, useful for the drone not to hit the ground!
-   // if (pos.translation.z < _minAltitude)
-   // {
-   //    pos.translation.z = _minAltitude;
-   //    vel.linear.z = 0.0;
-   //    acc.linear.z = 0.0;
-   // }
-
    point.transforms.push_back(pos);
    point.velocities.push_back(vel);
    point.accelerations.push_back(acc);

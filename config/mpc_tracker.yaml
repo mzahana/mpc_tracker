@@ -18,6 +18,9 @@ dt: 0.1
 # Number of MPC horizon steps, shoud be > 1
 mpc_window: 20
 
+# Minimum altitude above ground in UAV local frame, meter(s)
+minimum_altitude: 1.0
+
 # Localization frame id. Pose trajectory is published  with respect to it
 reference_frame_id: "interceptor_odom"
 

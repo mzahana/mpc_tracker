@@ -55,7 +55,8 @@ _drone_state_last_t(ros::Time::now()),
 _pub_pose_path(false),
 _plot(false),
 _use_6dof_model(true),
-_reference_frame_id("map")
+_reference_frame_id("map"),
+_minAltitude(1.0)
 {
    _nh_private.param("debug", _debug, true);
    _nh_private.param("pub_pose_path", _pub_pose_path, false);
@@ -72,6 +73,7 @@ _reference_frame_id("map")
    _nh_private.param("use_6dof_model", _use_6dof_model, true);
    _nh_private.param<std::string>("reference_frame_id", _reference_frame_id, "map");
    _nh_private.param<std::string>("output_csv_file", _outputCSVFile, "mpc_data.csv");
+   _nh_private.param("minimum_altitude", _minAltitude, 1.0);
 
    //  Sanity check
    if (_use_6dof_model)
@@ -462,7 +464,7 @@ void MPCTracker::setStateBounds(void)
    _xMin(4) = -1.0*_maxVel(1);         _xMax(4) = _maxVel(1); // vy
    _xMin(5) = -1.0*_maxAccel(1);       _xMax(5) = _maxAccel(1); // ay
 
-   _xMin(6) = -1.0*OsqpEigen::INFTY;   _xMax(6) = OsqpEigen::INFTY; // pz
+   _xMin(6) = _minAltitude;            _xMax(6) = OsqpEigen::INFTY; // pz
    _xMin(7) = -1.0*_maxVel(2);         _xMax(7) = _maxVel(2); // vz
    _xMin(8) = -1.0*_maxAccel(2);       _xMax(8) = _maxAccel(2); // az
 }
@@ -483,7 +485,7 @@ void MPCTracker::setStateBounds6DoF(void)
    _xMin(2) = -1.0*OsqpEigen::INFTY;   _xMax(2) = OsqpEigen::INFTY; // py
    _xMin(3) = -1.0*_maxVel(1);         _xMax(3) = _maxVel(1); // vy
 
-   _xMin(4) = -1.0*OsqpEigen::INFTY;   _xMax(4) = OsqpEigen::INFTY; // pz
+   _xMin(4) = _minAltitude;            _xMax(4) = OsqpEigen::INFTY; // pz
    _xMin(5) = -1.0*_maxVel(2);         _xMax(5) = _maxVel(2); // vz
 }
 
@@ -1035,7 +1037,7 @@ void MPCTracker::refTrajCallback(const custom_trajectory_msgs::StateTrajectory::
 
    // Publish optimal trajectory
    _desired_traj_pub.publish(_solution_traj_msg);
-   // Publish first control solution u[0]
+   // Publish first control solution u[0] to the geometric controller
    pubMultiDofTraj();
 }
 
@@ -1367,6 +1369,14 @@ void MPCTracker::pubMultiDofTraj(void)
       acc.linear.y = _optimal_traj_ay(1);
       acc.linear.z = _optimal_traj_az(1);
    }
+
+   // Minimum altitude constraints, useful for the drone not to hit the ground!
+   // if (pos.translation.z < _minAltitude)
+   // {
+   //    pos.translation.z = _minAltitude;
+   //    vel.linear.z = 0.0;
+   //    acc.linear.z = 0.0;
+   // }
 
    point.transforms.push_back(pos);
    point.velocities.push_back(vel);

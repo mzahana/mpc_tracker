@@ -243,6 +243,8 @@ private:
   Eigen::VectorXd       _optimal_traj_uy;       /** Optimal control input trajectory in y direction */
   Eigen::VectorXd       _optimal_traj_uz;       /** Optimal control input trajectory in z direction */
 
+  double                _minAltitude;           /** Minimum altitude to commanded by the MPC */
+
   bool                  _debug;                 /** Enable printing debug messages */
   bool                  _run_test_cases;        /** If true testCase() is executed, no ROS subscribers */
   bool                  _is_MPC_initialized;    /** True if MPC problem is initialized */

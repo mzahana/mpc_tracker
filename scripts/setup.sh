@@ -52,12 +52,19 @@ done
 # waypoint_navigator: Change branch
 cd $HOME/catkin_ws/src/waypoint_navigator && git checkout fix/abort_path
 
-if [ ! -d "$HOME/catkin_ws/src/trajectory_msgs" ]; then
-    cd $HOME/catkin_ws/src
-    git clone https://github.com/mzahana/trajectory_msgs.git
-else
-    cd $HOME/catkin_ws/src/trajectory_msgs && git pull
-fi
+# Clone Systemtrio packages
+PKGS="trajectory_prediction custom_trajectory_msgs"
+for p in $PKGS; do
+    if [ ! -d "$HOME/catkin_ws/src/$p" ]; then
+        echo "Didn't find $p. Cloning it..."
+        cd $HOME/catkin_ws/src
+        git clone https://${GIT_TOKEN}@github.com/SystemTrio-Robotics/$p
+    else
+        echo "$p is found. Pulling latest code..."
+        cd $HOME/catkin_ws/src/$p && git pull
+    fi
+done
+
 
 
 # mavros_controllers (geometric controller SE(3)/SO(3) )

@@ -61,6 +61,8 @@ SOFTWARE.
 // For plotting
 #include <plotty/matplotlibcpp.hpp>
 
+#include <tf/tf.h>
+
 class Commander
 {
 private:
@@ -157,6 +159,8 @@ public:
 class MPCTracker
 {
 private:
+  bool                  _debug;                 /** Printing debug messages */
+
   ros::NodeHandle       _nh;                    /** ROS node handle */
   ros::NodeHandle       _nh_private;            /** ROS private node handle */
 
@@ -193,6 +197,9 @@ private:
   Eigen::VectorXd       _ref_traj_vx;           /** Reference trajectory, velocity, x component */
   Eigen::VectorXd       _ref_traj_vy;           /** Reference trajectory, velocity, y component */
   Eigen::VectorXd       _ref_traj_vz;           /** Reference trajectory, velocity, z component */
+  Eigen::VectorXd       _ref_traj_heading;      /** Reference trajectory, heading angle */
+  Eigen::VectorXd       _ref_traj_heading_v;      /** Reference trajectory, heading angle rate */
+  Eigen::VectorXd       _ref_traj_heading_a;      /** Reference trajectory, heading angle acceleration */
   Eigen::VectorXd       _ref_traj_ax;           /** Reference trajectory, acceleration, x component */
   Eigen::VectorXd       _ref_traj_ay;           /** Reference trajectory, acceleration, y component */
   Eigen::VectorXd       _ref_traj_az;           /** Reference trajectory, acceleration, z component */
@@ -201,8 +208,8 @@ private:
   
   int                   _mpcWindow;             /** Number of prediction steps (N) */
   
-  static const unsigned int      NUM_OF_STATES = 6;             /** Number of UAV states (position, velocity, acceleration) */
-  static const unsigned int      NUM_OF_INPUTS = 3;      /** Number of control inputs of the UAV model. Jerk \in R^3 */
+  static const unsigned int      NUM_OF_STATES = 8;       /** Number of UAV states (3D position, 3D velocity, heading, heading rate) */
+  static const unsigned int      NUM_OF_INPUTS = 4;      /** Number of control inputs of the UAV model. [3D acceleraion, heading acceleration]*/
   Eigen::MatrixXd       _A;                     /** Discrete transition matrix */
   Eigen::MatrixXd       _B;                     /** Discrete input matrix */
   double                _state_weight;          /** State weight. */
@@ -217,15 +224,20 @@ private:
   Eigen::SparseMatrix<double> _hessian_sparse;   /** sparce version of the hessian */
   Eigen::MatrixXd       _Ac;                    /** Linear constraint  matrix of the QP problem */
   Eigen::SparseMatrix<double> _Ac_sparse;       /** Sparse version of Ac */ 
-  Eigen::VectorXd       _xMin;                  /** Lower bounds on position, velocity, acceleration */
-  Eigen::VectorXd       _xMax;                  /** Upper bounds on position, velocity, acceleration*/
-  Eigen::VectorXd       _uMin;                  /** Lower bounds on inputs (jerk) */
-  Eigen::VectorXd       _uMax;                  /** Upper bounds on inputs (jerk) */
+  Eigen::VectorXd       _xMin;                  /** Lower bounds on position, velocity, heading, heading rate */
+  Eigen::VectorXd       _xMax;                  /** Upper bounds on position, velocity, heading, heading rate*/
+  Eigen::VectorXd       _uMin;                  /** Lower bounds on inputs (acceleration) */
+  Eigen::VectorXd       _uMax;                  /** Upper bounds on inputs (acceleration) */
   Eigen::VectorXd       _lowerBounds;            /** Lower bounds vector of the QP problem */
   Eigen::VectorXd       _upperBounds;           /** Upper bounds vector of the QP problem */
+
   Eigen::Vector3d       _maxVel;                /** Maximum drone's velocity m/s*/
   Eigen::Vector3d       _maxAccel;              /** Maximum drone's acceleration m/s/s */
   Eigen::Vector3d       _maxJerk;               /** Maximum drone's jerk m/s/s/s */
+  double                _minHeading;            /** Minimum heading angle in radians */
+  double                _maxHeading;            /** Maximum heading angle in radians */
+  double                _headingVel;            /** Min/Max heading velocity */
+  double                _headingAccel;            /** Min/Max heading acceleration */
 
   Eigen::Vector3d       _mpc_ctrl_sol;          /** MPC control solution */
   Eigen::VectorXd       _optimal_state_traj;    /** Entire state trajectory part of the MPC solution */
@@ -242,10 +254,12 @@ private:
   Eigen::VectorXd       _optimal_traj_ux;       /** Optimal control input trajectory in x direction */
   Eigen::VectorXd       _optimal_traj_uy;       /** Optimal control input trajectory in y direction */
   Eigen::VectorXd       _optimal_traj_uz;       /** Optimal control input trajectory in z direction */
+  Eigen::VectorXd       _optimal_traj_heading;  /** Optimal heading trajectory */
+  Eigen::VectorXd       _optimal_traj_heading_vel;  /** Optimal heading velocity trajectory */
+  Eigen::VectorXd       _optimal_traj_heading_accel;  /** Optimal heading acceleration trajectory */
 
-  double                _minAltitude;           /** Minimum altitude to commanded by the MPC */
+  double                _minAltitude;           /** Minimum altitude commanded by the MPC */
 
-  bool                  _debug;                 /** Enable printing debug messages */
   bool                  _run_test_cases;        /** If true testCase() is executed, no ROS subscribers */
   bool                  _is_MPC_initialized;    /** True if MPC problem is initialized */
   bool                  _engage_controller;     /** **REMOVE** Flag for whether to publish MPC controls as setpoints */
@@ -259,12 +273,12 @@ private:
   OsqpEigen::Solver     _qpSolver;              /** Object of the quadratic program solver */
 
   bool                  _save_mpc_data;         /** Whether to save MPC data to _outputCSVFile */
-  std::string           _outputCSVFile;         /** Full path to a CSV output file where MPC is stored */
+  std::string           _outputCSVFile;         /** Full path to a CSV output file where MPC solutions are stored */
 
   bool                  _plot;                  /** Plots solutions, reference trajectory. ONLY if _run_test_cases==True */
 
   /**
-  * @brief Drone's odometry ROS Callback. Updates current_drone_state_ with position and velocity only
+  * @brief Drone's odometry ROS Callback. Updates current_drone_state_ with position and velocity, heading, heading velocity only
   * 
   * @param msg Holds Odometry measurement
   * 
@@ -287,7 +301,7 @@ private:
   void refTrajCallback(const custom_trajectory_msgs::StateTrajectory::ConstPtr& msg);
 
   /**
-  * @brief A callback that allows testCses() peroidically by publishing to a topic
+  * @brief A callback that executes testCases() peroidically by publishing to a topic. This is for debugging
   */
   void testCasesCallback(const std_msgs::Empty::ConstPtr& msg);
 

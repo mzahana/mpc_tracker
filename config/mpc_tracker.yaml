@@ -41,6 +41,18 @@ max_acceleration: [5.0, 5.0, 5.0]
 # [x,y,z]
 max_jerk: [2.0, 2.0, 2.0]
 
+# Minimum heading angle, radians
+minimum_heading: -3.1415
+
+# Maximum heading angle, radians
+maximum_heading: 3.1415
+
+# Max heading rate, rad/s
+max_heading_velocity: 2.1
+
+# Max heading acceleration, rad/s/s
+max_heading_acceleration: 2.1
+
 # Optimization penalty on the states (Q)
 state_weight: 7000 # 7000
 

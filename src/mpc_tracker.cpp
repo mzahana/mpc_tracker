@@ -74,13 +74,17 @@ _minAltitude(1.0)
    _nh_private.param<std::string>("reference_frame_id", _reference_frame_id, "map");
    _nh_private.param<std::string>("output_csv_file", _outputCSVFile, "mpc_data.csv");
    _nh_private.param("minimum_altitude", _minAltitude, 1.0);
+   _nh_private.param("minimum_heading", _minHeading, -3.1415);
+   _nh_private.param("maximum_heading", _maxHeading, 3.1415);
+   _nh_private.param("max_heading_velocity", _headingVel, 2.1);
+   _nh_private.param("max_heading_acceleration", _headingAccel, 2.1);
 
    //  Sanity check
    if (_use_6dof_model)
    {
-      if (NUM_OF_STATES != 6)
+      if (NUM_OF_STATES != 8)
       {
-         ROS_ERROR("[MPCTracker] NUM_OF_STATES should be equal to 6 for 6-state model. Exiting...");
+         ROS_ERROR("[MPCTracker] NUM_OF_STATES should be equal to 6 for 8-state model. Exiting...");
          return;
       }
    }
@@ -219,7 +223,7 @@ void MPCTracker::setTransitionMatrix(void)
 
 void MPCTracker::setTransitionMatrix6DoF(void)
 {
-   // states: [px, vx, py, vy, pz, vz]
+   // states: [px, vx, py, vy, pz, vz, heading, heading rate]
 
    Eigen::MatrixXd A_dt;
    A_dt = Eigen::MatrixXd::Identity(2,2); // Construct the smaller A matrix
@@ -232,6 +236,7 @@ void MPCTracker::setTransitionMatrix6DoF(void)
    _A.block(0,0, 2, 2) = A_dt;
    _A.block(2,2, 2, 2) = A_dt;
    _A.block(4,4, 2, 2) = A_dt;
+   _A.block(6,6, 2, 2) = A_dt;
 
    if(_debug)
    {
@@ -271,9 +276,10 @@ void MPCTracker::setInputMatrix6DoF(void)
    B_dt = Eigen::MatrixXd::Zero(2,1); // Build the blocks of _B
    B_dt(1,0) = _dt;
 
-   _B.block(0,0, 2,1) = B_dt;
-   _B.block(2,1, 2,1) = B_dt;
-   _B.block(4,2, 2,1) = B_dt;
+   _B.block(0,0, 2,1) = B_dt; // x, vx  with ax
+   _B.block(2,1, 2,1) = B_dt; // y, vy ith ay
+   _B.block(4,2, 2,1) = B_dt; // z, vz, az
+   _B.block(6,3, 2,1) = B_dt; // heading, heading rate with heading acceleration
 
    if(_debug)
    {
@@ -315,6 +321,7 @@ void MPCTracker::setQ6DoF(void)
    _Q(0,0) = _state_weight; // penality on position, x
    _Q(2,2) = _state_weight; // penality on position, y
    _Q(4,4) = _state_weight; // penality on position, z
+   _Q(6,6) = _state_weight; // penality on heading
 
    if(_debug)
    {
@@ -478,7 +485,7 @@ void MPCTracker::setStateBounds6DoF(void)
 
    // TODO Sanity checks on the values of maxVel, maxAccel
 
-   // states order: [px, vx, py, vy, pz, vz]
+   // states order: [px, vx, py, vy, pz, vz, heading, heading rate]
    _xMin(0) = -1.0*OsqpEigen::INFTY;   _xMax(0) = OsqpEigen::INFTY; // px
    _xMin(1) = -1.0*_maxVel(0);         _xMax(1) = _maxVel(0); // vx
    
@@ -487,6 +494,9 @@ void MPCTracker::setStateBounds6DoF(void)
 
    _xMin(4) = _minAltitude;            _xMax(4) = OsqpEigen::INFTY; // pz
    _xMin(5) = -1.0*_maxVel(2);         _xMax(5) = _maxVel(2); // vz
+
+   _xMin(6) = _minHeading;             _xMax(6) = _maxHeading;
+   _xMin(7) = -1*_headingVel;          _xMax(7) = _headingVel;
 }
 
 void MPCTracker::setControlBounds(void)
@@ -494,8 +504,15 @@ void MPCTracker::setControlBounds(void)
    // _uMin = -1.0*_maxJerk;
    // _uMax = _maxJerk;
 
-   _uMin = -1.0*_maxAccel;
-   _uMax = _maxAccel;
+   // input vector [ax, ay, az, heading acceleration]
+   _uMin = Eigen::VectorXd::Zero(4);
+   _uMax = Eigen::VectorXd::Zero(4);
+
+   _uMin.segment(0,3) = -1.0*_maxAccel;
+   _uMin(3) = -1*_headingAccel;
+
+   _uMax.segment(0,3) = _maxAccel;
+   _uMax(3) = _headingAccel;
 }
 
 // lower/upper bounds vectors, l, u
@@ -757,8 +774,8 @@ void MPCTracker::extractSolution(void)
 
    _solution_traj_msg.header.stamp = start_t;
    _solution_traj_msg.header.frame_id = _reference_frame_id;
-   _solution_traj_msg.max_acceleration = _maxAccel. maxCoeff();
-   _solution_traj_msg.max_velocity = _maxVel. maxCoeff();
+   _solution_traj_msg.max_acceleration = _maxAccel.maxCoeff();
+   _solution_traj_msg.max_velocity = _maxVel.maxCoeff();
 
 }
 
@@ -784,10 +801,13 @@ void MPCTracker::extractSolution6Dof(void)
    _optimal_traj_vx.resize(_mpcWindow+1);
    _optimal_traj_vy.resize(_mpcWindow+1);
    _optimal_traj_vz.resize(_mpcWindow+1);
+   _optimal_traj_heading.resize(_mpcWindow+1);
+   _optimal_traj_heading_vel.resize(_mpcWindow+1);
 
    _optimal_traj_ux.resize(_mpcWindow);
    _optimal_traj_uy.resize(_mpcWindow);
    _optimal_traj_uz.resize(_mpcWindow);
+   _optimal_traj_heading_accel.resize(_mpcWindow);
 
    _ref_traj_px.resize(_mpcWindow+1);
    _ref_traj_py.resize(_mpcWindow+1);
@@ -795,6 +815,10 @@ void MPCTracker::extractSolution6Dof(void)
    _ref_traj_vx.resize(_mpcWindow+1);
    _ref_traj_vy.resize(_mpcWindow+1);
    _ref_traj_vz.resize(_mpcWindow+1);
+
+   _ref_traj_heading.resize(_mpcWindow+1);
+   _ref_traj_heading_v.resize(_mpcWindow+1);
+   _ref_traj_heading_a.resize(_mpcWindow+1);
 
    _solution_traj_msg.states.resize(_mpcWindow);
 
@@ -809,7 +833,7 @@ void MPCTracker::extractSolution6Dof(void)
       pose_msg.pose.position.x = _optimal_state_traj(i*NUM_OF_STATES+0);
       pose_msg.pose.position.y = _optimal_state_traj(i*NUM_OF_STATES+2);
       pose_msg.pose.position.z = _optimal_state_traj(i*NUM_OF_STATES+4);
-      pose_msg.pose.orientation.w=1.0; // Keep 0 rotation, for now
+      pose_msg.pose.orientation = tf::createQuaternionMsgFromYaw(_optimal_state_traj(i*NUM_OF_STATES+6));
       // _posehistory_vector.insert(_posehistory_vector.begin(), pose_msg);
       _posehistory_vector[i] = pose_msg;
 
@@ -821,6 +845,9 @@ void MPCTracker::extractSolution6Dof(void)
       _optimal_traj_vy(i) = _optimal_state_traj(i*NUM_OF_STATES+3);
       _optimal_traj_vz(i) = _optimal_state_traj(i*NUM_OF_STATES+5);
 
+      _optimal_traj_heading(i) = _optimal_state_traj(i*NUM_OF_STATES+6);
+      _optimal_traj_heading_vel(i) = _optimal_state_traj(i*NUM_OF_STATES+7);
+
       _ref_traj_px(i) = _referenceTraj(i*NUM_OF_STATES+0, 0);
       _ref_traj_py(i) = _referenceTraj(i*NUM_OF_STATES+2, 0);
       _ref_traj_pz(i) = _referenceTraj(i*NUM_OF_STATES+4, 0);
@@ -829,11 +856,15 @@ void MPCTracker::extractSolution6Dof(void)
       _ref_traj_vy(i) = _referenceTraj(i*NUM_OF_STATES+3, 0);
       _ref_traj_vz(i) = _referenceTraj(i*NUM_OF_STATES+5, 0);
 
+      _ref_traj_heading(i) = _referenceTraj(i*NUM_OF_STATES+6, 0);
+      _ref_traj_heading_v(i) = _referenceTraj(i*NUM_OF_STATES+7, 0);
+
       if(i<_mpcWindow)
       {
          _optimal_traj_ux(i) = _optimal_control_traj(i*NUM_OF_INPUTS+0);
          _optimal_traj_uy(i) = _optimal_control_traj(i*NUM_OF_INPUTS+1);
          _optimal_traj_uz(i) = _optimal_control_traj(i*NUM_OF_INPUTS+2);
+         _optimal_traj_heading_accel(i) = _optimal_control_traj(i*NUM_OF_INPUTS+3);
 
          // Fill ROS msg
          _solution_traj_msg.states[i].time_from_start = (i+1)*_dt;
@@ -846,13 +877,16 @@ void MPCTracker::extractSolution6Dof(void)
          _solution_traj_msg.states[i].acceleration.x = _optimal_control_traj(i*NUM_OF_INPUTS+0);
          _solution_traj_msg.states[i].acceleration.y = _optimal_control_traj(i*NUM_OF_INPUTS+1);
          _solution_traj_msg.states[i].acceleration.z = _optimal_control_traj(i*NUM_OF_INPUTS+2);
+         _solution_traj_msg.states[i].yaw = _optimal_state_traj( (i+1)*NUM_OF_STATES+6 );
+         _solution_traj_msg.states[i].yaw_speed = _optimal_state_traj( (i+1)*NUM_OF_STATES+7 );
+         _solution_traj_msg.states[i].yaw_acceleration = _optimal_control_traj(i*NUM_OF_INPUTS+3);
       }
    }
 
    _solution_traj_msg.header.stamp = start_t;
    _solution_traj_msg.header.frame_id = _reference_frame_id;
-   _solution_traj_msg.max_acceleration = _maxAccel. maxCoeff();
-   _solution_traj_msg.max_velocity = _maxVel. maxCoeff();
+   _solution_traj_msg.max_acceleration = _maxAccel.maxCoeff();
+   _solution_traj_msg.max_velocity = _maxVel.maxCoeff();
 
 }
 
@@ -935,6 +969,9 @@ void MPCTracker::droneOdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
 
       _current_drone_state(4,0) = msg->pose.pose.position.z;
       _current_drone_state(5,0) = msg->twist.twist.linear.z;
+
+      _current_drone_state(6,0) = tf::getYaw(msg->pose.pose.orientation);
+      _current_drone_state(7,0) = msg->twist.twist.angular.z;
    }
    else
    {
@@ -999,6 +1036,9 @@ void MPCTracker::refTrajCallback(const custom_trajectory_msgs::StateTrajectory::
 
          _referenceTraj(i*NUM_OF_STATES+4,0) = msg->states[i].position.z;
          _referenceTraj(i*NUM_OF_STATES+5,0) = msg->states[i].velocity.z;
+
+         _referenceTraj(i*NUM_OF_STATES+6,0) = msg->states[i].yaw;
+         _referenceTraj(i*NUM_OF_STATES+7,0) = msg->states[i].yaw_speed;
       }
       else
       {
@@ -1352,6 +1392,8 @@ void MPCTracker::pubMultiDofTraj(void)
    pos.translation.x = _optimal_traj_px(1);
    pos.translation.y = _optimal_traj_py(1);
    pos.translation.z = _optimal_traj_pz(1);
+   pos.rotation.w = 1.0;
+   // pos.rotation = tf::createQuaternionMsgFromYaw(_optimal_traj_heading(1));
 
    vel.linear.x = _optimal_traj_vx(1);
    vel.linear.y = _optimal_traj_vy(1);

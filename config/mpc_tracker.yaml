@@ -55,6 +55,10 @@ max_heading_acceleration: 2.1
 
 # Optimization penalty on the states (Q)
 state_weight: 7000 # 7000
+# Optimization penalty on the heading state
+# Generally it is more relaxed compared to the position states
+# Value of zero means heading tracking is deactivated
+heading_weight: 0
 
 # Optimization penalty on the control inuputs (R)
-input_weight: 500 # 0.5
+input_weight: 3000 # 0.5

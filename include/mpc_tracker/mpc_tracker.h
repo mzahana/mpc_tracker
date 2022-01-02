@@ -213,6 +213,7 @@ private:
   Eigen::MatrixXd       _A;                     /** Discrete transition matrix */
   Eigen::MatrixXd       _B;                     /** Discrete input matrix */
   double                _state_weight;          /** State weight. */
+  double                _heading_weight;        /** Penality on heading error tracking */
   double                _input_weight;          /** Input weight. */
   double                _smooth_input_weight;   /** Weight/penality on input smoothing term */
   bool                  _enable_control_smoothing; /** Affects the Hessian structure */

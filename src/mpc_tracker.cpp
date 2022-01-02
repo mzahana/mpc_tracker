@@ -78,6 +78,8 @@ _minAltitude(1.0)
    _nh_private.param("maximum_heading", _maxHeading, 3.1415);
    _nh_private.param("max_heading_velocity", _headingVel, 2.1);
    _nh_private.param("max_heading_acceleration", _headingAccel, 2.1);
+   _nh_private.param("heading_weight", _heading_weight, 1.0);
+   
 
    //  Sanity check
    if (_use_6dof_model)
@@ -321,7 +323,7 @@ void MPCTracker::setQ6DoF(void)
    _Q(0,0) = _state_weight; // penality on position, x
    _Q(2,2) = _state_weight; // penality on position, y
    _Q(4,4) = _state_weight; // penality on position, z
-   _Q(6,6) = _state_weight; // penality on heading
+   _Q(6,6) = _heading_weight; // penality on heading
 
    if(_debug)
    {
@@ -1037,8 +1039,8 @@ void MPCTracker::refTrajCallback(const custom_trajectory_msgs::StateTrajectory::
          _referenceTraj(i*NUM_OF_STATES+4,0) = msg->states[i].position.z;
          _referenceTraj(i*NUM_OF_STATES+5,0) = msg->states[i].velocity.z;
 
-         _referenceTraj(i*NUM_OF_STATES+6,0) = msg->states[i].yaw;
-         _referenceTraj(i*NUM_OF_STATES+7,0) = msg->states[i].yaw_speed;
+         _referenceTraj(i*NUM_OF_STATES+6,0) = msg->states[0].yaw;
+         _referenceTraj(i*NUM_OF_STATES+7,0) = 0;//msg->states[i].yaw_speed;
       }
       else
       {
@@ -1392,7 +1394,24 @@ void MPCTracker::pubMultiDofTraj(void)
    pos.translation.x = _optimal_traj_px(1);
    pos.translation.y = _optimal_traj_py(1);
    pos.translation.z = _optimal_traj_pz(1);
-   pos.rotation.w = 1.0;
+
+   Eigen::Vector3d p1, p2;
+   p1 << _current_drone_state(0), _current_drone_state(2), _current_drone_state(4);
+   p2 << _ref_traj_px(0), _ref_traj_py(0), _ref_traj_pz(0);
+   Eigen::Vector3d v = p2-p1;
+   double distance = v.norm();
+   double heading;
+   if(distance < 0.01)
+   {
+      heading = _current_drone_state(6);
+   }
+   else
+   {
+      v = v/v.norm();
+      heading = atan2f64(v(1), v(0));
+   }
+   // pos.rotation.w = 1.0;
+   pos.rotation = tf::createQuaternionMsgFromYaw(heading);
    // pos.rotation = tf::createQuaternionMsgFromYaw(_optimal_traj_heading(1));
 
    vel.linear.x = _optimal_traj_vx(1);

@@ -110,7 +110,8 @@ else
 fi
 cd $HOME/src/osqp-eigen
 echo $SUDO_PASS | sudo -S rm -rf build
-echo $SUDO_PASS | sudo -S mkdir build && mkdir install
+echo $SUDO_PASS | sudo -S mkdir build
+echo $SUDO_PASS | sudo -S mkdir install
 cd build
 # cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$HOME/src/osqp-eigen/install ../
 echo $SUDO_PASS | sudo -S cmake -DCMAKE_BUILD_TYPE=Release ../

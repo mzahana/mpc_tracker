@@ -89,7 +89,8 @@ if [ ! -d "$HOME/src/osqp" ]; then
 else
     cd $HOME/src/osqp && git pull
 fi
-cd $HOME/src/osqp && rm -rf build
+cd $HOME/src/osqp 
+echo $SUDO_PASS | sudo -S rm -rf build
 echo $SUDO_PASS | sudo -S mkdir build
 cd build
 echo $SUDO_PASS | sudo -S cmake -G "Unix Makefiles" ..
@@ -108,7 +109,7 @@ else
     cd $HOME/src/osqp-eigen && git pull
 fi
 cd $HOME/src/osqp-eigen
-rm -rf build
+echo $SUDO_PASS | sudo -S rm -rf build
 echo $SUDO_PASS | sudo -S mkdir build && mkdir install
 cd build
 # cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$HOME/src/osqp-eigen/install ../

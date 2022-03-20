@@ -5,8 +5,8 @@
 
 echo "Setting up the mpc_tracker package..."
 
-SUDO_PASS=$1
-GIT_TOKEN=$2
+SUDO_PASS=$2
+GIT_TOKEN=$1
 
 # For coloring terminal output
 RED='\033[0;31m'

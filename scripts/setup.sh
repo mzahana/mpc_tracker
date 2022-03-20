@@ -5,8 +5,8 @@
 
 echo "Setting up the mpc_tracker package..."
 
-# SUDO_PASS=$1
-# GIT_TOKEN=$2
+SUDO_PASS=$1
+GIT_TOKEN=$2
 
 # For coloring terminal output
 RED='\033[0;31m'
@@ -85,17 +85,17 @@ fi
 # osqp
 if [ ! -d "$HOME/src/osqp" ]; then
     cd $HOME/src
-    git clone --recursive https://github.com/osqp/osqp.git
+    echo $SUDO_PASS | sudo -S git clone --recursive https://github.com/osqp/osqp.git
 else
     cd $HOME/src/osqp && git pull
 fi
 cd $HOME/src/osqp && rm -rf build
-mkdir build
+echo $SUDO_PASS | sudo -S mkdir build
 cd build
-cmake -G "Unix Makefiles" ..
-cmake --build .
+echo $SUDO_PASS | sudo -S cmake -G "Unix Makefiles" ..
+echo $SUDO_PASS | sudo -S cmake --build .
 if [ -z "$SUDO_PASS" ]; then
-    cmake --build . --target install
+    echo $SUDO_PASS | sudo -S cmake --build . --target install
 else
     echo $SUDO_PASS | sudo -S cmake --build . --target install
 fi
@@ -103,19 +103,19 @@ fi
 # osqqp-eigen: https://github.com/robotology/osqp-eigen
 if [ ! -d "$HOME/src/osqp-eigen" ]; then
     cd $HOME/src
-    git clone https://github.com/robotology/osqp-eigen.git
+    echo $SUDO_PASS | sudo -S git clone https://github.com/robotology/osqp-eigen.git
 else
     cd $HOME/src/osqp-eigen && git pull
 fi
 cd $HOME/src/osqp-eigen
 rm -rf build
-mkdir build && mkdir install
+echo $SUDO_PASS | sudo -S mkdir build && mkdir install
 cd build
 # cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX:PATH=$HOME/src/osqp-eigen/install ../
-cmake -DCMAKE_BUILD_TYPE=Release ../
-make
+echo $SUDO_PASS | sudo -S cmake -DCMAKE_BUILD_TYPE=Release ../
+echo $SUDO_PASS | sudo -S make
 if [ -z "$SUDO_PASS" ]; then
-    make install
+    echo $SUDO_PASS | sudo -S make install
 else
     echo $SUDO_PASS | sudo -S make install
 fi

@@ -29,7 +29,7 @@ else
     sudo apt-get install -y libyaml-cpp-dev
 fi
 
-echo $SUDO_PASS | sudo S apt-get install -y libgdal-dev
+echo $SUDO_PASS | sudo -S apt-get install -y libgdal-dev
 
 
 # Dependencies for mavros_controllers and trajectory generation

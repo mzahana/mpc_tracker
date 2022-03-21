@@ -29,8 +29,13 @@ else
     sudo apt-get install -y libyaml-cpp-dev
 fi
 
+if [ ! -z "${SUDO_PASS}" ]; then
 echo $SUDO_PASS | sudo -S apt-get install -y libgdal-dev
-
+else
+    sudo apt-get install -y  libgdal-dev
+fi
+    
+     
 
 # Dependencies for mavros_controllers and trajectory generation
 if [ ! -d "$HOME/catkin_ws/src/catkin_simple" ]; then

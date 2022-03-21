@@ -29,10 +29,12 @@ else
     sudo apt-get install -y libyaml-cpp-dev
 fi
 
+echo $SUDO_PASS | sudo -S apt-get update
+
 if [ ! -z "${SUDO_PASS}" ]; then
 echo $SUDO_PASS | sudo -S apt-get install -y libgdal-dev
 else
-    sudo apt-get install -y  libgdal-dev
+    sudo apt-get install -y libgdal-dev
 fi
     
      

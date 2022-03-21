@@ -125,8 +125,9 @@ grep -xF 'export OsqpEigen_DIR=$HOME/src/osqp-eigen/install' ${HOME}/.bashrc || 
 source $HOME/.bashrc
 
 # Matplotlib, required for plotting
+pip install wheel
 pip install matplotlib
 
 # Build catkin_ws
-cd $HOME/catkin_ws && catkin build
-source $HOME/.bashrc
+# cd $HOME/catkin_ws && catkin build
+# source $HOME/.bash

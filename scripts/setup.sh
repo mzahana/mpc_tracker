@@ -29,7 +29,7 @@ else
     sudo apt-get install -y libyaml-cpp-dev
 fi
 
-echo $SUDO_PASS | sudo S apt-get install libgdal-dev
+echo $SUDO_PASS | sudo S apt-get install -y libgdal-dev
 
 
 # Dependencies for mavros_controllers and trajectory generation
@@ -146,6 +146,7 @@ source $HOME/.bashrc
 # Matplotlib, required for plotting
 pip install wheel
 pip install matplotlib
+pip install GDAL==1.11.2
 
 # Build catkin_ws
 # cd $HOME/catkin_ws && catkin build

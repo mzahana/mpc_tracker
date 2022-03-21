@@ -146,7 +146,7 @@ source $HOME/.bashrc
 # Matplotlib, required for plotting
 pip install wheel
 pip install matplotlib
-pip install GDAL==1.11.2
+pip install GDAL
 
 # Build catkin_ws
 # cd $HOME/catkin_ws && catkin build

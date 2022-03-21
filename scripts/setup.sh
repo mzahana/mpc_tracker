@@ -47,6 +47,16 @@ else
     cd $HOME/catkin_ws/src/geometry && git pull
 fi
 
+
+if [ ! -d "$HOME/catkin_ws/src/angles" ]; then
+    cd $HOME/catkin_ws/src
+    git clone https://github.com/ros/angles
+    
+else
+    cd $HOME/catkin_ws/src/angles && git pull
+fi
+
+
 ETHZ_PKG="eigen_catkin mav_comm eigen_checks glog_catkin nlopt geodetic_utils mav_trajectory_generation plotty waypoint_navigator"
 for p in $ETHZ_PKG; do
     if [ ! -d "$HOME/catkin_ws/src/$p" ]; then

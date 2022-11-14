@@ -24,9 +24,9 @@ NC='\033[0m' # No Color
 
 # Trajectory generation dependencies
 if [ ! -z "${SUDO_PASS}" ]; then
-echo $SUDO_PASS | sudo -S apt-get install -y libyaml-cpp-dev    
+echo $SUDO_PASS | sudo -S apt-get install -y libyaml-cpp-dev libtool libtool-bin
 else
-    sudo apt-get install -y libyaml-cpp-dev
+    sudo apt-get install -y libyaml-cpp-dev libtool libtool-bin
 fi
 
 

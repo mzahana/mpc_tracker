@@ -29,50 +29,53 @@ else
     sudo apt-get install -y libyaml-cpp-dev libtool libtool-bin
 fi
 
-
+if [ -z "$CATKIN_WS" ]; then
+	CATKIN_WS=$HOME/catkin_ws
+	echo "path to catkin_ws is defined at $CATKIN_WS" && echo    
+fi
 
 # Dependencies for mavros_controllers and trajectory generation
-if [ ! -d "$HOME/catkin_ws/src/catkin_simple" ]; then
-    cd $HOME/catkin_ws/src
+if [ ! -d "$CATKIN_WS/src/catkin_simple" ]; then
+    cd $CATKIN_WS/src
     git clone https://github.com/catkin/catkin_simple
 else
-    cd $HOME/catkin_ws/src/catkin_simple && git pull
+    cd $CATKIN_WS/src/catkin_simple && git pull
 fi
 
 ETHZ_PKG="eigen_catkin mav_comm eigen_checks glog_catkin nlopt geodetic_utils mav_trajectory_generation plotty waypoint_navigator"
 for p in $ETHZ_PKG; do
-    if [ ! -d "$HOME/catkin_ws/src/$p" ]; then
-        cd $HOME/catkin_ws/src
+    if [ ! -d "$CATKIN_WS/src/$p" ]; then
+        cd $CATKIN_WS/src
         git clone https://github.com/ethz-asl/$p
     else
-        cd $HOME/catkin_ws/src/$p && git pull
+        cd $CATKIN_WS/src/$p && git pull
     fi
 done
 
 # waypoint_navigator: Change branch
-cd $HOME/catkin_ws/src/waypoint_navigator && git checkout fix/abort_path
+cd $CATKIN_WS/src/waypoint_navigator && git checkout fix/abort_path
 
 # Clone Systemtrio packages
 PKGS="trajectory_prediction custom_trajectory_msgs"
 for p in $PKGS; do
-    if [ ! -d "$HOME/catkin_ws/src/$p" ]; then
+    if [ ! -d "$CATKIN_WS/src/$p" ]; then
         echo "Didn't find $p. Cloning it..."
-        cd $HOME/catkin_ws/src
+        cd $CATKIN_WS/src
         git clone https://${GIT_USER}:${GIT_TOKEN}@github.com/mzahana/$p
     else
         echo "$p is found. Pulling latest code..."
-        cd $HOME/catkin_ws/src/$p && git pull
+        cd $CATKIN_WS/src/$p && git pull
     fi
 done
 
 
 
 # mavros_controllers (geometric controller SE(3)/SO(3) )
-if [ ! -d "$HOME/catkin_ws/src/mavros_controllers" ]; then
-    cd $HOME/catkin_ws/src
+if [ ! -d "$CATKIN_WS/src/mavros_controllers" ]; then
+    cd $CATKIN_WS/src
     git clone https://github.com/Jaeyoung-Lim/mavros_controllers
 else
-    cd $HOME/catkin_ws/src/mavros_controllers && git pull
+    cd $CATKIN_WS/src/mavros_controllers && git pull
 fi
 
 
@@ -83,13 +86,18 @@ if [ ! -d "$HOME/src" ]; then
 fi
 
 # osqp
-if [ ! -d "$HOME/src/osqp" ]; then
-    cd $HOME/src
+if [ -z "$OSQP_SRC" ]; then
+	OSQP_SRC=$HOME/src
+	echo "path to catkin_ws is defined at $OSQP_SRC" && echo    
+fi
+
+if [ ! -d "$OSQP_SRC/osqp" ]; then
+    cd $OSQP_SRC
     git clone --recursive https://github.com/osqp/osqp.git
 else
-    cd $HOME/src/osqp && git pull
+    cd $OSQP_SRC/osqp && git pull
 fi
-cd $HOME/src/osqp && rm -rf build
+cd $OSQP_SRC/osqp && rm -rf build
 mkdir build
 cd build
 cmake -G "Unix Makefiles" ..
@@ -101,13 +109,13 @@ else
 fi
 
 # osqqp-eigen: https://github.com/robotology/osqp-eigen
-if [ ! -d "$HOME/src/osqp-eigen" ]; then
-    cd $HOME/src
+if [ ! -d "$OSQP_SRC/osqp-eigen" ]; then
+    cd $OSQP_SRC
     git clone https://github.com/robotology/osqp-eigen.git
 else
-    cd $HOME/src/osqp-eigen && git pull
+    cd $OSQP_SRC/osqp-eigen && git pull
 fi
-cd $HOME/src/osqp-eigen
+cd $OSQP_SRC/osqp-eigen
 rm -rf build
 mkdir build && mkdir install
 cd build
@@ -119,12 +127,13 @@ if [ -z "$SUDO_PASS" ]; then
 else
     echo $SUDO_PASS | sudo -S make install
 fi
-grep -xF 'export OsqpEigen_DIR=$HOME/src/osqp-eigen/install' ${HOME}/.bashrc || echo "export OsqpEigen_DIR=\$HOME/src/osqp-eigen/install" >> ${HOME}/.bashrc
+echo "export OsqpEigen_DIR=$OSQP_SRC/osqp-eigen/install" >> ${HOME}/.bashrc
+#grep -xF 'export OsqpEigen_DIR=$HOME/src/osqp-eigen/install' ${HOME}/.bashrc || echo "export OsqpEigen_DIR=\$HOME/src/osqp-eigen/install" >> ${HOME}/.bashrc
 source $HOME/.bashrc
 
 # Matplotlib, required for plotting
 pip install matplotlib
 
 # Build catkin_ws
-cd $HOME/catkin_ws && catkin build
+cd $CATKIN_WS && catkin build
 source $HOME/.bashrc

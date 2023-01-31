@@ -55,7 +55,7 @@ done
 # waypoint_navigator: Change branch
 cd $CATKIN_WS/src/waypoint_navigator && git checkout fix/abort_path
 
-# Clone Systemtrio packages
+# Clone dependencies
 PKGS="trajectory_prediction custom_trajectory_msgs"
 for p in $PKGS; do
     if [ ! -d "$CATKIN_WS/src/$p" ]; then
@@ -88,8 +88,8 @@ fi
 # osqp
 if [ -z "$OSQP_SRC" ]; then
 	OSQP_SRC=$HOME/src
-	echo "path to catkin_ws is defined at $OSQP_SRC" && echo    
 fi
+echo "path to catkin_ws is defined at $OSQP_SRC" && echo    
 
 if [ ! -d "$OSQP_SRC/osqp" ]; then
     cd $OSQP_SRC

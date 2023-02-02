@@ -89,7 +89,11 @@ fi
 if [ -z "$OSQP_SRC" ]; then
 	OSQP_SRC=$HOME/src
 fi
-echo "path to catkin_ws is defined at $OSQP_SRC" && echo    
+echo "path to OSQP_SRC is defined at $OSQP_SRC" && echo  
+
+if [ ! -d "$OSQP_SRC" ];then
+    mkdir -p $OSQP_SRC
+fi
 
 if [ ! -d "$OSQP_SRC/osqp" ]; then
     cd $OSQP_SRC
